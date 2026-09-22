@@ -110,8 +110,11 @@ from reading the responses against `docs/rudder-guidelines.md`.
 
    ```bash
    python3 .claude/skills/annotate-task/scripts/make_payload.py \
-       submissions/<folder>/answer_<uid8>.md
+       submissions/<folder>/answer_<uid8>.md --fix
    ```
+
+   Always pass `--fix`. It corrects the sheet's mechanical faults in place before
+   exporting, looping until none are left, and prints every edit it made.
 
    This writes `payload_{uid8}.json` beside the sheet, keyed by the same field
    ids with the `_response_a` / `_response_b` suffix stripped, and carries the
@@ -122,8 +125,26 @@ from reading the responses against `docs/rudder-guidelines.md`.
    misspelled option surfaces here instead of halfway through a fill. Fix the
    sheet and re-run; it is safe to run repeatedly.
 
-   It then runs `check_answers.py` over the prose and the answers together, and
-   **every ERROR has to be fixed before the task is reported**:
+   It then runs `check_answers.py` over the prose and the answers together.
+   **Loop until the report is clean: do not report the task in step 7 while any
+   ERROR stands.** Re-run the same command after each edit; it is safe to run
+   repeatedly and it is the only thing that tells you the prose came clean.
+
+   `--fix` handles four faults on its own, because they cannot change what a
+   sentence asserts: a pair of em dashes around a parenthetical becomes a pair of
+   commas, a missing comma before a clause-joining conjunction is inserted, a
+   missing full stop is added, and a bare "Response A" in the preference
+   explanation gains its @.
+
+   Everything else is yours to rewrite, and that is deliberate. A tautology, an
+   aphorism, a self-describing sentence, a three-clause run-on and a lone em dash
+   are all fixed by rewriting, and a script that rewrote them would be editing
+   what the submission claims rather than its punctuation. A lone em dash is the
+   sharpest case: replacing it with a comma where it joins two clauses produces a
+   comma splice, which nothing here catches, so the answer would read clean while
+   carrying a grammar error. Rewrite the sentence and re-run.
+
+   The three groups:
 
    - **P** — LLM prose tells, ported from the sibling Geranium project, where
      reviewers reject work for reading as model-written. Tautology, the
@@ -139,8 +160,8 @@ from reading the responses against `docs/rudder-guidelines.md`.
      no flag and no note, correctness sub-flags under a status of OK.
 
    A WARN is a second read, not a blocker. Fix the sheet, never the JSON, and
-   re-run; the JSON is derived. To check a sheet before the payload exists, run
-   `check_answers.py` on the sheet directly.
+   re-run; the JSON is derived. To fix and check a sheet on its own, before the
+   payload exists, run `check_answers.py --fix` on it directly.
 
    Then resolve every value against the captured form, which needs no browser:
 
@@ -177,3 +198,5 @@ from reading the responses against `docs/rudder-guidelines.md`.
 - A clean `check_answers.py` run is the floor, not the goal. It is a pattern
   net: it cannot tell whether a rationale cites the right evidence, so read the
   prose aloud as well.
+- `--fix` edits the sheet in place and prints every edit. Read them. A fix that
+  looks wrong means the sentence needed rewriting, not repunctuating.

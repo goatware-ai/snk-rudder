@@ -31,6 +31,13 @@ Coherence (C*)         The answers read against each other: a preference that
 
 ERROR is something a reviewer would send back. WARN is worth a second read.
 Exits non-zero if any ERROR is found.
+
+With --fix, and only on an answer sheet, the corrections that are purely
+mechanical are applied in place and the checks re-run, until nothing mechanical
+is left. Four of them qualify, and the loop exists because one fix can expose
+another: an em dash becoming a comma can leave a sentence whose clauses now need
+one. Everything else is reported and left alone, because the fix is a rewrite and
+a rewrite changes what the submission claims.
 """
 import argparse
 import json
@@ -240,7 +247,9 @@ def check_prose(text, where, f):
         sev = "ERROR" if (em >= 3 or 1000 * em / words >= 12) else "WARN"
         f.add(sev, "P4", where,
               f"{em} em dash(es) in {words} words — the house rule for platform-entered text is "
-              "zero; use a comma, colon or full stop")
+              "zero. A pair around a parenthetical is fixed for you; a lone dash is not, because "
+              "the right replacement is a comma, a colon or a full stop depending on whether a "
+              "new clause follows it")
 
     runons = []
     for s in sentences(text):
@@ -437,6 +446,160 @@ def check_coherence(payload, f):
 
 
 # ============================================================================
+# mechanical fixes
+# ============================================================================
+#
+# A fix belongs here only if it cannot change what a sentence asserts. That rules
+# out most of the prose findings on purpose: a tautology, an aphorism, a
+# self-describing sentence and a three-clause run-on are all fixed by rewriting,
+# and a script that rewrote them would be editing the claim rather than the
+# punctuation. Those stay in the report for a person to rewrite.
+
+_EM_DASH_RE = re.compile(r"\s*" + _EM_DASH + r"\s*")
+_TERMINAL_RE = re.compile(r"[.!?][\"\')\]]?$")
+
+
+def _fix_em_dashes(text):
+    """P4: a PAIR of em dashes around a parenthetical becomes a pair of commas.
+
+    A lone em dash is deliberately left alone, and this is the one place where
+    being clever would do damage. The right replacement depends on what follows
+    it: a comma for an appositive, a colon for a list, a semicolon or a full stop
+    where it joins two independent clauses. Guessing comma there produces a comma
+    splice, which is a grammar error the form's own rule forbids and which no
+    check here catches, so the fix would land silently and the report would then
+    call the answer clean. Telling those apart needs to parse the clause, so a
+    lone dash stays in the report for a person to resolve.
+    """
+    changed = 0
+    out = []
+    for sentence in re.split(r"(\s+)", text):
+        n = sentence.count(_EM_DASH)
+        # a pair inside one token-run, with text after the second: a parenthetical
+        if n == 2 and not sentence.rstrip().endswith(_EM_DASH):
+            out.append(_EM_DASH_RE.sub(", ", sentence))
+            changed += n
+        else:
+            out.append(sentence)
+    joined = "".join(out)
+
+    # whole-sentence pass, since a parenthetical usually spans several words
+    parts = []
+    for sentence in sentences(joined) or [joined]:
+        n = sentence.count(_EM_DASH)
+        if n == 2 and not sentence.rstrip().rstrip(".!?").endswith(_EM_DASH):
+            sentence = _EM_DASH_RE.sub(", ", sentence)
+            sentence = re.sub(r",\s*([.!?])", r"\1", sentence)
+            changed += n
+        parts.append(sentence)
+    joined = " ".join(parts) if len(parts) > 1 else parts[0]
+
+    if not changed:
+        return text, None
+    return joined, f"replaced {changed} paired em dash(es) with commas"
+
+
+def _fix_missing_commas(text):
+    """P5: insert the comma before a conjunction that opens a new clause.
+
+    This is the reviewer's rule applied literally, and it adds punctuation
+    without moving a word. The three-clause case is NOT touched: splitting a
+    sentence is a rewrite.
+    """
+    edits = []
+    for s in sentences(text):
+        if len(s.split()) < 8:
+            continue
+        for m in _bare_hits(s):
+            edits.append((s, m.start()))
+    if not edits:
+        return text, None
+    fixed = text
+    for sentence, offset in edits:
+        at = fixed.find(sentence)
+        if at < 0:
+            continue
+        cut = at + offset
+        fixed = fixed[:cut] + "," + fixed[cut:]
+    if fixed == text:
+        return text, None
+    return fixed, f"added {len(edits)} comma(s) before a clause-joining conjunction"
+
+
+def _fix_terminal_stop(text):
+    """F4: a full stop on the end."""
+    stripped = text.rstrip()
+    if not stripped or _TERMINAL_RE.search(stripped):
+        return text, None
+    return stripped + ".", "added the missing full stop"
+
+
+def _fix_response_tokens(text, kind):
+    """F2: the preference explanation's tokens take the @ the form asks for.
+
+    Only in the preference explanation. In a rating rationale, naming the other
+    response is an error whose fix is to write "the response" instead, and
+    substituting that blindly would turn a true sentence into a false one.
+    """
+    if kind != "preference" or not _BARE_RESPONSE.search(text):
+        return text, None
+    fixed, n = _BARE_RESPONSE.subn(lambda m: f"@Response_{m.group(1)}", text)
+    return fixed, f"wrote @Response_ on {n} bare mention(s)"
+
+
+FIXERS = [
+    ("P4", lambda t, k: _fix_em_dashes(t)),
+    ("P5", lambda t, k: _fix_missing_commas(t)),
+    ("F2", _fix_response_tokens),
+    ("F4", lambda t, k: _fix_terminal_stop(t)),
+]
+_FIX_PASSES = 5
+
+
+def fix_text(text, kind):
+    """One pass of every mechanical fix over one field. Returns (text, [notes])."""
+    notes = []
+    for code, fixer in FIXERS:
+        text, note = fixer(text, kind)
+        if note:
+            notes.append(f"[{code}] {note}")
+    return text, notes
+
+
+def fix_sheet(path, verbose=True):
+    """Apply mechanical fixes to a sheet in place, looping until nothing changes.
+
+    Returns the list of changes made. The loop is bounded: a fixer that kept
+    finding work every pass would be oscillating, and that is a bug to see rather
+    than to spin on.
+    """
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from fill_answers import apply_answers
+
+    changes = []
+    for attempt in range(_FIX_PASSES):
+        payload = load(path)
+        updates = {}
+        for field_id, text, kind in prose_fields(payload):
+            fixed, notes = fix_text(text, kind)
+            if fixed != text:
+                updates[field_id] = fixed
+                for n in notes:
+                    changes.append(f"{field_id}: {n}")
+        if not updates:
+            return changes
+        written, unknown = apply_answers(path, updates)
+        if unknown:
+            changes.append("could not write back: " + ", ".join(unknown))
+            return changes
+        if verbose:
+            for field_id in sorted(updates):
+                print(f"  fixed {field_id}")
+    changes.append(f"still finding fixes after {_FIX_PASSES} passes; stopped")
+    return changes
+
+
+# ============================================================================
 # driving
 # ============================================================================
 
@@ -486,6 +649,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("paths", nargs="+", type=Path, help="payload.json or answer_*.md")
+    ap.add_argument("--fix", action="store_true",
+                    help="apply the mechanical corrections to an answer sheet in place, "
+                         "re-checking until none are left")
     args = ap.parse_args()
 
     failed = False
@@ -494,6 +660,19 @@ def main() -> int:
             print(f"{path}: no such file")
             failed = True
             continue
+        if args.fix:
+            if path.suffix == ".json":
+                print(f"{path.name}: --fix needs the answer sheet. The payload is derived "
+                      "from it, so a fix written here would be lost on the next export.")
+                failed = True
+                continue
+            changes = fix_sheet(path)
+            if changes:
+                print(f"{path.name}: {len(changes)} mechanical fix(es) applied")
+                for c in changes:
+                    print(f"  + {c}")
+            else:
+                print(f"{path.name}: nothing mechanical to fix")
         f = check_payload(load(path), path.name)
         f.report(path.name)
         if f.errors():

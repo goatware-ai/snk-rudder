@@ -11,6 +11,9 @@ python3 .claude/skills/annotate-task/scripts/check_answers.py \
 It takes a payload or an answer sheet. **ERROR** is something a reviewer would send back.
 **WARN** is worth a second read. It exits non-zero on any error.
 
+With `--fix`, on an answer sheet, it corrects the mechanical faults in place and re-checks
+until none are left. See [What --fix does, and what it refuses to do](#what---fix-does-and-what-it-refuses-to-do).
+
 The checks cover the three free-text answers, which are the only prose a task submits: the
 two rating rationales and the preference explanation, plus any "describe the issue" note.
 
@@ -91,8 +94,54 @@ C5 is the one worth stating plainly: if Response A is rated higher overall and t
 preference says B is better, one of the three answers is wrong, and the form has no way to
 show which.
 
+## What --fix does, and what it refuses to do
+
+```bash
+python3 .claude/skills/annotate-task/scripts/check_answers.py --fix \
+    submissions/<folder>/answer_<uid8>.md
+```
+
+It writes into the answer sheet, never the payload, because the payload is derived and a
+fix written there would be lost on the next export. It loops, because one correction can
+expose another, and it prints every edit it makes. `make_payload.py --fix` runs the same
+thing before exporting, which is the one-command path the skill uses.
+
+Four faults are corrected, and they share one property: none of them can change what a
+sentence asserts.
+
+| Code | Correction |
+|---|---|
+| **P4** | A pair of em dashes around a parenthetical becomes a pair of commas. |
+| **P5** | A missing comma before a clause-joining conjunction is inserted. |
+| **F2** | A bare "Response A" in the preference explanation gains its @. |
+| **F4** | A missing full stop is added. |
+
+Everything else is reported and left alone. A tautology, an aphorism, a self-describing
+sentence and a three-clause run-on are all fixed by rewriting, and rewriting is the part
+that changes the claim. A script doing it would be editing what the submission says, not
+how it is punctuated.
+
+**The lone em dash is the case worth spelling out**, because the obvious fix is wrong. The
+right replacement depends on what follows: a comma for an appositive, a colon for a list, a
+semicolon or a full stop where it joins two independent clauses. Substituting a comma
+everywhere produces a comma splice in the third case, which is a grammar error the form
+forbids and which nothing here detects. The fix would land silently and the report would
+then call the answer clean. So a lone dash stays in the report as an error, and the
+sentence gets rewritten by hand.
+
+That asymmetry is the design: the loop is automatic for punctuation and manual for meaning.
+
 ## What it cannot do
 
 It is a pattern net, the same caveat the source project states. It cannot tell whether a
 rationale cites the right evidence, whether a rating is defensible, or whether the
 preference matches the guidelines. A clean run is the floor. Read the prose aloud as well.
+
+Two known blind spots, both inherited deliberately:
+
+- **Comma splices.** Two independent clauses joined by a comma with no conjunction. The
+  source project leaves this as a read rather than a check, because catching it precisely
+  needs to parse the clause, and a loose version fires on ordinary sentences. It is the
+  reason `--fix` will not touch a lone em dash.
+- **The serial comma.** Named in the same reviewer's rule as P5 and left as a read for the
+  same reason.

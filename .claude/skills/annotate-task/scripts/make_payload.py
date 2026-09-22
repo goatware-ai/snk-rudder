@@ -22,9 +22,11 @@ that fills what it knows and leaves the rest of the form alone.
 
 The reviewer-only Review section is never exported.
 
-Once the payload is written, check_answers.py runs over it: the LLM prose tells
-ported from the sibling Geranium project, the form's own writing rules, and the
-answers read against each other. Pass --no-check to skip that.
+check_answers.py then runs over the answers: the LLM prose tells ported from the
+sibling Geranium project, the form's own writing rules, and the answers read
+against each other. With --fix it first corrects the sheet's mechanical faults in
+place, looping until none are left, and re-exports from the corrected sheet.
+Pass --no-check to skip the checks entirely.
 """
 import argparse
 import json
@@ -234,12 +236,27 @@ def main() -> int:
     ap.add_argument("-o", "--out", type=Path, help="where to write (default: beside the sheet)")
     ap.add_argument("--no-check", action="store_true",
                     help="skip the prose, style and coherence checks")
+    ap.add_argument("--fix", action="store_true",
+                    help="correct the sheet's mechanical faults in place before exporting")
     args = ap.parse_args()
 
     if not args.sheet.exists():
         sys.exit(f"no such file: {args.sheet}")
-    text = args.sheet.read_text()
 
+    if args.fix and not args.no_check:
+        # Before the sheet is parsed, so the payload is built from the corrected
+        # prose rather than from what was there a moment ago.
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from check_answers import fix_sheet
+
+        changes = fix_sheet(args.sheet, verbose=False)
+        if changes:
+            print(f"Fixed {len(changes)} mechanical fault(s) in {args.sheet.name}:")
+            for c in changes:
+                print(f"  + {c}")
+            print()
+
+    text = args.sheet.read_text()
     fields, meta = parse_sheet(text)
     if not fields:
         sys.exit(

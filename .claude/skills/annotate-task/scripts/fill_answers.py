@@ -23,12 +23,13 @@ import sys
 from pathlib import Path
 
 
-def main() -> None:
-    if len(sys.argv) != 3:
-        sys.exit(__doc__)
-    sheet = Path(sys.argv[1])
-    answers = json.loads(Path(sys.argv[2]).read_text())
+def apply_answers(sheet: Path, answers: dict) -> tuple:
+    """Write `answers` into `sheet` in place. Returns (ids written, ids not found).
 
+    Split out of main() so other scripts can write back into a sheet without
+    shelling out or duplicating the block-rewriting rules. check_answers.py --fix
+    uses it to put corrected prose back where it came from.
+    """
     lines = sheet.read_text().splitlines()
     out, current, used = [], None, set()
     i = 0
@@ -71,8 +72,17 @@ def main() -> None:
         i += 1
 
     sheet.write_text("\n".join(out) + "\n")
+    return used, sorted(set(answers) - used)
 
-    unknown = sorted(set(answers) - used)
+
+def main() -> None:
+    if len(sys.argv) != 3:
+        sys.exit(__doc__)
+    sheet = Path(sys.argv[1])
+    answers = json.loads(Path(sys.argv[2]).read_text())
+
+    used, unknown = apply_answers(sheet, answers)
+
     print(f"Filled {len(used)} of {len(answers)} fields in {sheet.name}")
     if unknown:
         print("NOT FOUND in sheet (check the id): " + ", ".join(unknown))
