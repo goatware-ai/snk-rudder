@@ -21,6 +21,10 @@ Blank answers are left out entirely, so a half-filled sheet produces a payload
 that fills what it knows and leaves the rest of the form alone.
 
 The reviewer-only Review section is never exported.
+
+Once the payload is written, check_answers.py runs over it: the LLM prose tells
+ported from the sibling Geranium project, the form's own writing rules, and the
+answers read against each other. Pass --no-check to skip that.
 """
 import argparse
 import json
@@ -228,6 +232,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("sheet", type=Path, help="a completed answer_*.md")
     ap.add_argument("-o", "--out", type=Path, help="where to write (default: beside the sheet)")
+    ap.add_argument("--no-check", action="store_true",
+                    help="skip the prose, style and coherence checks")
     args = ap.parse_args()
 
     if not args.sheet.exists():
@@ -260,7 +266,20 @@ def main() -> int:
         print(f"  {len(problems)} problem(s) the form will reject:")
         for p in problems:
             print(f"    ! {p}")
-    return 1 if problems else 0
+
+    prose_failed = False
+    if not args.no_check:
+        # Imported rather than shelled out so a missing sibling is an obvious
+        # ImportError here, not a silently skipped validation.
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from check_answers import check_payload
+
+        print()
+        found = check_payload(payload, out.name)
+        found.report(out.name)
+        prose_failed = bool(found.errors())
+
+    return 1 if (problems or prose_failed) else 0
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 ---
 name: annotate-task
-description: Fetch and answer a Rudder Comparison Preference task. Use whenever the user shares a Rudder task UID, pastes a task screenshot, says "next task"/"next question", or asks for help rating or choosing between Response A and Response B in this project — even if they only give a UID with no other instructions. Fetches the task with the stb CLI into submissions/{seq}-{uid8}/, builds an answer sheet mirroring the live form, fills in every rating, flag, rationale and the overall preference, and exports a payload.json for the Rudder Helper Chrome extension to type into the form.
+description: Fetch and answer a Rudder Comparison Preference task. Use whenever the user shares a Rudder task UID, pastes a task screenshot, says "next task"/"next question", or asks for help rating or choosing between Response A and Response B in this project — even if they only give a UID with no other instructions. Fetches the task with the stb CLI into submissions/{seq}-{uid8}/, builds an answer sheet mirroring the live form, fills in every rating, flag, rationale and the overall preference, validates every answer for LLM prose tells and coherence, and exports a payload.json for the Rudder Helper Chrome extension to type into the form.
 ---
 
 # Annotate a Rudder task
@@ -15,10 +15,12 @@ with a written rationale, and then pick a 5-point preference between them with
 an explanation. That is ~74 fields per task, which is why the fetch step builds
 a sheet you can fill offline and transcribe.
 
-Two references, kept separate on purpose: `docs/rudder-guidelines.md` is *how to
-score* (the rubric for each axis), and `docs/rudder-form.md` is *what the form
+Three references, kept separate on purpose: `docs/rudder-guidelines.md` is *how
+to score* (the rubric for each axis), `docs/rudder-form.md` is *what the form
 asks* (section order, conditional questions, and the payload field ids you need
-when writing an answers JSON).
+when writing an answers JSON), and `docs/rudder-prose.md` is *how the free text
+has to read* (the LLM prose tells, the form's writing rules, and the coherence
+checks, all enforced by `check_answers.py`).
 
 Production payloads contain **no golden label** — the `adriel_isabel_preference`
 field only existed in the calibration project. Every answer here has to come
@@ -104,7 +106,7 @@ from reading the responses against `docs/rudder-guidelines.md`.
    doesn't show up on the page means its trigger wasn't selected, not that the
    sheet is out of date. `docs/rudder-form.md` records which are conditional.
 
-6. Export the payload the extension loads, and let it check its own work:
+6. Export the payload and validate every answer:
 
    ```bash
    python3 .claude/skills/annotate-task/scripts/make_payload.py \
@@ -119,6 +121,26 @@ from reading the responses against `docs/rudder-guidelines.md`.
    unanswered and every value the form would reject, so a blank rating or a
    misspelled option surfaces here instead of halfway through a fill. Fix the
    sheet and re-run; it is safe to run repeatedly.
+
+   It then runs `check_answers.py` over the prose and the answers together, and
+   **every ERROR has to be fixed before the task is reported**:
+
+   - **P** — LLM prose tells, ported from the sibling Geranium project, where
+     reviewers reject work for reading as model-written. Tautology, the
+     semicolon-balanced maxim, self-describing and roadmap sentences,
+     pre-counted lists, em dashes, and the comma rules for joined clauses.
+     `docs/rudder-prose.md` carries the catalogue and the evidence behind it.
+   - **F** — the form's own writing rules: "the response" in a rating
+     rationale against @Response_A / @Response_B in the preference explanation,
+     no first person, no vague assertion, and the justification a strong
+     preference or a tie owes.
+   - **C** — the answers against each other: a preference that contradicts the
+     two overall ratings, a flag ticked under a rating of 5, a low rating with
+     no flag and no note, correctness sub-flags under a status of OK.
+
+   A WARN is a second read, not a blocker. Fix the sheet, never the JSON, and
+   re-run; the JSON is derived. To check a sheet before the payload exists, run
+   `check_answers.py` on the sheet directly.
 
    Then resolve every value against the captured form, which needs no browser:
 
@@ -152,3 +174,6 @@ from reading the responses against `docs/rudder-guidelines.md`.
   JSON, which the next run would overwrite.
 - The extension types the form; it never chooses an answer and never submits.
   Read the filled form before submitting it.
+- A clean `check_answers.py` run is the floor, not the goal. It is a pattern
+  net: it cannot tell whether a rationale cites the right evidence, so read the
+  prose aloud as well.

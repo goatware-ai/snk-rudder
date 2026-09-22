@@ -3,7 +3,8 @@
 Production project `67eb3460-2595-415d-be91-b464871b428e`. Transcribed from the
 live submission form; the scoring rubrics themselves are **not** repeated here —
 they live in [rudder-guidelines.md](rudder-guidelines.md), and the form quotes
-the same text inline.
+the same text inline. What the free-text boxes must not read like is
+[rudder-prose.md](rudder-prose.md).
 
 This file documents the *shape* of the form: what it asks, in what order, which
 questions are conditional, and what each field is called in the payload. It is
