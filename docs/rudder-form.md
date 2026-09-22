@@ -96,8 +96,10 @@ with no response suffix.
 
 ## How the page is built
 
-Relevant only if you are changing the extension. Captures of all three sections
-live in `tools/section-1.html`, `section-2.html` and `section-3.html`, and
+Relevant only if you are changing the extension. Captures live in `tools/`:
+the three form sections as `section-1.html`, `section-2.html` and
+`section-3.html`, the left panel holding the prompt and both responses as
+`prompt-response.html`, and the header's UID line as `task-header.html`.
 `tools/rudder-helper/test_selectors.py` asserts the following against them.
 
 - Each section is an accordion carrying `data-testid="section-<heading>"`, open
@@ -119,6 +121,19 @@ live in `tools/section-1.html`, `section-2.html` and `section-3.html`, and
 - The three conditional questions are **absent from the DOM** until their gate is
   answered, not merely hidden. Anything that writes them has to set the gate and
   then wait for the field to mount.
+
+Above the form, in the left panel, each response sits under a leaf `<h3>` whose
+text is exactly `Response A` or `Response B`, and the pane's body is the **next**
+`[data-testid="rich-doc-rendered"]` in document order. The prompt uses the same
+shape under `Context`, which is why the body has to be the next rendered doc
+after the heading rather than the nearest one either side. A pane's body carries
+headings of its own, so anything pairing headings to bodies has to walk start
+tags, not end tags.
+
+The header prints the task id as a leaf node reading `UID:` followed by a sibling
+holding the uuid and a copy button. Read it from that label. The form's own
+element ids are uuid-shaped too, so scanning the page for a uuid finds the wrong
+thing.
 
 Submitted values, for reference: ratings `5`…`1`, constraint following also
 `not_applicable`, correctness `ok` / `flagged` / `not_sure`, follow-up `yes` /
@@ -159,7 +174,11 @@ under:
 - `fingerprints` are the opening lines of the two responses, used to check which
   pane the page is currently calling Response A. Without them that check cannot
   run, and the randomised placement is the one error a finished form does not
-  show.
+  show. They are markdown while the pane is rendered, so both sides are folded
+  onto one key before matching: emphasis markers deleted, curly quotes
+  straightened, the truncating ellipsis dropped.
+- `task_uid` is compared against the UID on the page before any fill, and a
+  mismatch refuses the fill outright.
 
 The generator reports every unanswered question and every value the form would
 reject, and exits non-zero on the latter. `tools/rudder-helper/README.md` covers

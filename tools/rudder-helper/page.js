@@ -55,7 +55,7 @@ async function pageOps(op, payload) {
   const norm = (s) => (s || "").replace(/\s+/g, " ").trim();
   const low = (s) => norm(s).toLowerCase();
   const squeeze = (s) => low(s).replace(/\s+/g, "");
-  const out = { op, ok: true, sections: {}, notes: [], mapping: null };
+  const out = { op, ok: true, sections: {}, notes: [], mapping: null, uid: null, taskUid: null };
 
   // ------------------------------------------------------------------ text
 
@@ -442,73 +442,150 @@ async function pageOps(op, payload) {
     return { id, present: true, kind: "unknown", value: null };
   }
 
-  // ------------------------------------------------- the A/B mapping check
+  // ------------------------------------------- the task header and the panes
   //
-  // The two responses are shown above the form and their left/right placement is
-  // randomised per render, so the payload's "response_a" is only correct if the pane the
-  // screen calls Response A really is the text it was written about. The payload carries
-  // the opening line of each, and this looks for them on the page.
+  // VERIFIED against two captures: tools/prompt-response.html (the left panel
+  // holding the prompt and both responses) and tools/task-header.html (the UID
+  // line). Earlier versions of this file guessed at both; they no longer do.
   //
-  // Unlike everything else here, this part is NOT verified against a capture: the three
-  // captures are of the form's own sections, not the panes above them. So it reports what
-  // it found and how sure it is, and a fill refuses only on a definite contradiction.
+  //   The panes   Each response sits under a leaf <h3> reading exactly
+  //               "Response A" or "Response B", and the pane's body is the NEXT
+  //               [data-testid="rich-doc-rendered"] in document order. The
+  //               prompt uses the same shape under "Context", which is why the
+  //               body is the next rendered doc AFTER the heading rather than
+  //               the nearest one either side.
+  //   The UID     The header prints "UID:" in a leaf node and the uuid in the
+  //               next sibling, which also holds a copy button. It is read from
+  //               that label, never by scanning the page for something
+  //               uuid-shaped: the form's own element ids are uuid-shaped too.
+  //
+  // Placement is randomised per render, so the panes are what tell a payload
+  // which way round the page currently is.
 
-  function headingLabels() {
-    const out = [];
-    for (const n of document.querySelectorAll("h1,h2,h3,h4,h5,h6,p,span,div,strong,label,button")) {
+  const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
+  function readTaskUid() {
+    for (const n of document.querySelectorAll("div, span, p, label, dt, td, th")) {
       if (n.children.length) continue;
-      const m = /^response\s*([ab])\b\s*:?$/i.exec(norm(n.textContent));
+      if (!/^uid\s*:?$/i.test(norm(n.textContent))) continue;
+      let sib = n.nextElementSibling;
+      for (let hops = 0; sib && hops < 3; hops++, sib = sib.nextElementSibling) {
+        const m = UUID_RE.exec(norm(sib.textContent));
+        if (m) return m[0].toLowerCase();
+      }
+      const parent = n.parentElement;
+      const m = parent && UUID_RE.exec(norm(parent.textContent));
+      if (m) return m[0].toLowerCase();
+    }
+    return null;
+  }
+
+  function compareUid(payload, pageUid) {
+    const want = low((payload || {}).task_uid || "");
+    if (!want) return { state: "no-payload-uid", page: pageUid };
+    if (!pageUid) return { state: "page-unknown", payload: want };
+    return { state: want === pageUid ? "match" : "mismatch", page: pageUid, payload: want };
+  }
+
+  // A fingerprint is the first line of the response as MARKDOWN, while the pane
+  // shows it rendered, so "a **real** pattern" on one side has to match "a real
+  // pattern" on the other. Both sides are folded onto the same key: emphasis
+  // markers dropped, curly quotes straightened, the truncating ellipsis removed.
+  function matchKey(s) {
+    return String(s || "")
+      .toLowerCase()
+      .replace(/[‘’‛]/g, "'")
+      .replace(/[“”]/g, '"')
+      // Deleted, not replaced with a space: "a **real** pattern" has to fold
+      // onto the same key as the rendered "a real pattern", and substituting a
+      // space would leave "pattern , and" against the page's "pattern, and",
+      // which costs the strongest match tier. Both sides run through this, so a
+      // deletion inside a word is harmless, because it happens on both.
+      .replace(/[*_`#>~\[\]…]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function paneHeadings() {
+    const out = [];
+    for (const n of document.querySelectorAll("h1,h2,h3,h4,h5,h6,div,span,p,strong,label")) {
+      if (n.children.length) continue;
+      const m = /^response\s*([ab])\s*:?$/i.exec(norm(n.textContent));
       if (m) out.push({ el: n, side: m[1].toLowerCase() });
     }
     return out;
   }
 
-  function deepestWith(needle) {
-    if (!needle) return null;
-    let best = null;
-    for (const el of document.querySelectorAll("p,div,span,li,h1,h2,h3,h4,strong,em,td,article")) {
-      if (!low(el.textContent).includes(needle)) continue;
-      if (!best || best.contains(el)) best = el;
+  function paneBody(headingEl) {
+    for (const d of document.querySelectorAll('[data-testid="rich-doc-rendered"]')) {
+      if (headingEl.compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING) {
+        return norm(d.textContent);
+      }
     }
-    return best;
+    // The rendered-doc wrapper is gone: climb to the first ancestor holding
+    // meaningfully more text than the heading itself.
+    const headLen = norm(headingEl.textContent).length;
+    let el = headingEl.parentElement;
+    for (let hops = 0; el && hops < 6; hops++, el = el.parentElement) {
+      const t = norm(el.textContent);
+      if (t.length > headLen + 60) return t;
+    }
+    return "";
   }
 
-  function checkMapping(fingerprints) {
+  function readPanes() {
+    const panes = {};
+    for (const h of paneHeadings()) {
+      if (!panes[h.side]) panes[h.side] = paneBody(h.el);
+    }
+    return panes;
+  }
+
+  // Which way round the page is, against the payload's fingerprints.
+  function orientation(fingerprints) {
     const fp = fingerprints || {};
-    const a = low(fp.a || "").slice(0, 60);
-    const b = low(fp.b || "").slice(0, 60);
-    if (!a && !b) return { known: false, why: "the payload carries no fingerprints" };
-
-    const labels = headingLabels();
-    if (!labels.length) {
-      return { known: false, why: 'no "Response A" / "Response B" heading found on the page' };
-    }
-    const precedingSide = (el) => {
-      let side = null;
-      for (const L of labels) {
-        if (L.el.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) side = L.side;
-      }
-      return side;
+    const panes = readPanes();
+    const res = {
+      known: false,
+      aligned: false,
+      conflict: false,
+      panes: { a: (panes.a || "").slice(0, 100), b: (panes.b || "").slice(0, 100) },
     };
-
-    const res = { known: false, found: {}, conflict: false };
-    for (const [key, needle] of [["a", a], ["b", b]]) {
-      if (!needle) continue;
-      const el = deepestWith(needle);
-      res.found[key] = el ? precedingSide(el) : "not on page";
+    if (!panes.a && !panes.b) {
+      res.why = 'no "Response A" or "Response B" pane on this page';
+      return res;
     }
-    const seen = Object.entries(res.found).filter(([, v]) => v === "a" || v === "b");
-    if (!seen.length) {
-      res.why = "neither opening line was found on the page";
+    if (!fp.a && !fp.b) {
+      res.why = "the payload carries no fingerprints";
+      return res;
+    }
+
+    const key = { a: matchKey(fp.a).slice(0, 60), b: matchKey(fp.b).slice(0, 60) };
+    const body = { a: matchKey(panes.a), b: matchKey(panes.b) };
+    const score = (want, text) => {
+      if (!want || !text) return 0;
+      if (text.startsWith(want)) return 3;
+      if (text.includes(want)) return 2;
+      const short = want.slice(0, 30);
+      return short && text.includes(short) ? 1 : 0;
+    };
+    const straight = score(key.a, body.a) + score(key.b, body.b);
+    const crossed = score(key.a, body.b) + score(key.b, body.a);
+
+    if (!straight && !crossed) {
+      res.why = "neither opening line was found in either pane";
+      return res;
+    }
+    if (straight === crossed) {
+      res.why = "the two openings match both panes equally well, so they cannot be told apart";
       return res;
     }
     res.known = true;
-    for (const [key, side] of seen) {
-      if (side !== key) res.conflict = true;
-    }
-    res.why = seen
-      .map(([key, side]) => `the text graded as ${key.toUpperCase()} is on screen as ${side.toUpperCase()}`)
-      .join("; ");
+    res.aligned = straight > crossed;
+    res.conflict = crossed > straight;
+    res.why = res.conflict
+      ? "the response rated as A is on screen as Response B, and the other way round"
+      : "the response rated as A is on screen as Response A";
     return res;
   }
 
@@ -618,9 +695,20 @@ async function pageOps(op, payload) {
 
   // ------------------------------------------------------------- dispatch
 
+  if (op === "orient") {
+    // Read-only. Reports which pane is which and whether the payload belongs to
+    // this task; the popup decides what to do about it.
+    out.taskUid = readTaskUid();
+    out.uid = compareUid(payload, out.taskUid);
+    out.mapping = orientation((payload || {}).fingerprints);
+    return out;
+  }
+
   if (op === "scan" || op === "verify") {
     out.scan = await scanAll();
-    out.mapping = checkMapping((payload || {}).fingerprints);
+    out.taskUid = readTaskUid();
+    out.uid = compareUid(payload, out.taskUid);
+    out.mapping = orientation((payload || {}).fingerprints);
     if (op === "verify" && payload) {
       const diffs = [];
       for (const [side, schema] of [["a", PER_RESPONSE], ["b", PER_RESPONSE], [null, PREFERENCE]]) {
@@ -661,15 +749,31 @@ async function pageOps(op, payload) {
   const p = payload || {};
   const want = (k) => op === "fill" || op === "fill:" + k;
 
-  // The mapping guard. A definite contradiction stops the fill, because writing Response
+  // Two guards before anything is written, in this order.
+  //
+  // The task guard first, because a payload for another task is wrong in every
+  // field and no amount of A/B orienting saves it.
+  out.taskUid = readTaskUid();
+  out.uid = compareUid(p, out.taskUid);
+  if (out.uid.state === "mismatch" && !p.force) {
+    out.ok = false;
+    out.notes.push(
+      `REFUSED: this page is task ${out.uid.page}, but the payload is for ${out.uid.payload}. ` +
+        'Load this task\'s payload, or set "force": true if the page is right and the payload\'s ' +
+        "task_uid is stale."
+    );
+    return out;
+  }
+
+  // Then the A/B guard. A definite contradiction stops the fill, because writing Response
   // A's ratings against the other response is the one mistake that cannot be seen by
   // reading the finished form.
-  out.mapping = checkMapping(p.fingerprints);
+  out.mapping = orientation(p.fingerprints);
   if (out.mapping.conflict && !p.force) {
     out.ok = false;
     out.notes.push(
       "REFUSED: " + out.mapping.why + ". The payload was written the other way round. " +
-        'Press "Swap A/B" in the popup, or set "force": true if the fingerprints are wrong.'
+        'Press "A/B Adjust" in the popup, or set "force": true if the fingerprints are wrong.'
     );
     return out;
   }

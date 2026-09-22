@@ -28,41 +28,71 @@ Then:
 
 1. Open the task page. The extension opens each section itself, so you do not need to
    expand them first.
-2. Open the popup, **Load JSON**, pick that task's `payload_*.json`.
-3. Press **Scan page** first, and read the A/B line at the top of the report.
-4. Press **Fill all**, or fill one section at a time.
-5. Press **Verify**, read the form, and submit it yourself.
+2. Open the popup, **Load JSON**, pick that task's `payload_*.json`. **A/B Adjust** is
+   greyed out until a payload parses.
+3. Press **Scan page** first. Read the task UID line and the A/B line at the top.
+4. Press **A/B Adjust**. It reads the two panes and turns the payload the right way round
+   for this render, or says it was already correct and changes nothing.
+5. Press **Fill all**, or fill one section at a time.
+6. Press **Verify**, read the form, and submit it yourself.
 
-## The A/B mapping
+## Two guards before anything is written
 
-This is the one mistake that cannot be seen by reading the finished form: the two
-responses are shown above the questions and **their placement is randomised per render**,
-so the pane the screen calls Response A is not always the response the sheet rated as A.
-Ratings written against the wrong response look completely normal.
+### The task guard
 
-The payload carries the opening line of each response under `fingerprints`. On every scan
-and every fill, the extension looks for those lines on the page and works out which
-heading each one sits under:
+The payload carries the task's `task_uid`. The page prints its own next to a `UID:` label
+in the header. Every fill compares them and **refuses on a mismatch**, because a payload
+from another task is wrong in every field and no amount of A/B orienting saves it. The UID
+is read from that label rather than by scanning for something uuid-shaped, since the form's
+own element ids are uuid-shaped too. If no UID can be found on the page, the report says so
+and the fill proceeds.
+
+### The A/B guard
+
+This is the mistake that cannot be seen by reading the finished form: the two responses are
+shown above the questions and **their placement is randomised per render**, so the pane the
+screen calls Response A is not always the response the sheet rated as A. Ratings written
+against the wrong response look completely normal.
+
+The payload carries the opening line of each response under `fingerprints`. The extension
+reads the text of both panes and matches them:
 
 | Report | Meaning |
 |---|---|
-| `A/B checks out` | Each fingerprint was found under its own heading. |
-| `A/B MISMATCH` | A fingerprint was found under the **other** heading. A fill is refused. |
-| `A/B not checked` | The headings or the text were not found. Confirm it yourself. |
+| `A/B checks out` | Each fingerprint matched its own pane. |
+| `A/B MISMATCH` | Each fingerprint matched the **other** pane. A fill is refused. |
+| `A/B not checked` | The panes or the fingerprints were missing, or both openings matched both panes equally. Confirm it yourself. |
 
-On a mismatch, press **Swap A/B**. That trades the two rating sets, flips the preference,
-and exchanges `@Response_A` / `@Response_B` in the explanation. The swap of those tokens is
-mechanical, so re-read the explanation before filling: the sentences around them may no
-longer hold.
+A fingerprint is the first line of the response as **markdown**, while the pane shows it
+rendered, so both sides are folded onto one key first: emphasis markers deleted, curly
+quotes straightened, the truncating ellipsis dropped. The markers are deleted rather than
+replaced with a space, because a space would leave `pattern , and` against the page's
+`pattern, and` and cost the strongest match.
 
-`"force": true` in the payload overrides the refusal, for when the fingerprints themselves
-are wrong.
+### A/B Adjust
+
+Disabled until a payload parses. It reads the page and turns the payload to match **this**
+render. It is not a blind swap:
+
+- Already correct, it says so and changes nothing.
+- Reversed, it trades the two rating sets, flips the preference, and exchanges
+  `@Response_A` / `@Response_B` in the explanation.
+- Unable to tell the panes apart, it prints the opening of each pane and changes nothing.
+- Wrong task, it refuses and changes nothing.
+
+Exchanging those tokens is mechanical, so re-read the explanation before filling. The
+sentences around them may no longer hold.
+
+`"force": true` in the payload overrides both refusals, for when the page is right and the
+payload's fingerprints or `task_uid` are stale.
 
 ## What it fills, and how much to trust each part
 
-Everything below is verified against captures of the live page, kept in `tools/` as
-`section-1.html` (Response A), `section-2.html` (Response B) and `section-3.html`
-(Overall preference). `test_selectors.py` asserts each row against those captures.
+Everything below is verified against captures of the live page, kept in `tools/`:
+`section-1.html` (Response A), `section-2.html` (Response B), `section-3.html` (Overall
+preference), `prompt-response.html` (the left panel holding the prompt and both responses)
+and `task-header.html` (the UID line). `test_selectors.py` asserts each row against those
+captures.
 
 | What | How it is found | Confidence |
 |---|---|---|
@@ -72,7 +102,8 @@ Everything below is verified against captures of the live page, kept in `tools/`
 | Failure-mode flags | `div[role="checkbox"]`, label decoded out of `aria-label` | **Verified** |
 | The two rationales | `textarea#overall_rationale_response_a` / `_b`, `textarea#preference_explanation` | **Verified** |
 | Conditional questions | absent from the captures; waited for after their gate is answered | **Verified by absence** |
-| Which pane is on-screen Response A | the nearest preceding `Response A` / `Response B` heading | **Heuristic** — reported, never acted on silently |
+| Which pane is on-screen Response A | a leaf `Response A` / `Response B` heading, then the next `data-testid="rich-doc-rendered"` in document order | **Verified** (`prompt-response.html`) |
+| The task UID | the uuid in the sibling of the leaf node reading `UID:` | **Verified** (`task-header.html`) |
 
 Three questions do not exist on an untouched form and only mount once the answer above
 them opens that branch:

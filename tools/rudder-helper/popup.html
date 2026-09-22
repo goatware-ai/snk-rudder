@@ -61,7 +61,8 @@
         font-size: 12px;
         cursor: pointer;
       }
-      button:hover { border-color: var(--accent); }
+      button:hover:not(:disabled) { border-color: var(--accent); }
+      button:disabled { opacity: 0.45; cursor: not-allowed; }
       button.primary { background: var(--accent); color: #fff; border-color: transparent; font-weight: 600; }
       fieldset { border: 1px solid var(--line); border-radius: 6px; margin: 10px 0 0; padding: 8px 10px 10px; }
       legend { color: var(--muted); font-size: 11px; padding: 0 4px; }
@@ -101,7 +102,7 @@
 
     <div class="row">
       <label class="file">Load JSON<input type="file" id="jsonFile" accept=".json,application/json" /></label>
-      <button id="swap">Swap A/B</button>
+      <button id="adjust" disabled title="Load a payload first">A/B Adjust</button>
       <button id="clear">Clear</button>
     </div>
 
@@ -119,8 +120,10 @@
         <button data-op="fill:preference">Preference</button>
       </div>
       <p class="hint">
-        Scan first. It reports which pane the screen calls Response A, so a payload written
-        the other way round is caught before anything is written.
+        Scan first. It reports the task UID and which pane the screen calls Response A.
+        <strong>A/B Adjust</strong> reads those panes and turns the payload the right way
+        round for this render; a fill is refused while the payload is for another task or
+        written the other way round.
       </p>
     </fieldset>
 

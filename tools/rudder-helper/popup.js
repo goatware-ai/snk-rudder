@@ -41,15 +41,38 @@
     return line;
   }
 
+  // A/B Adjust needs a payload to turn round, so it stays disabled until one
+  // parses. Re-checked on every change to the box, not only on Load JSON, since
+  // the payload can also be pasted or edited in place.
+  function loaded() {
+    try {
+      const p = JSON.parse(ta.value.trim() || "null");
+      return p && typeof p === "object" && !Array.isArray(p) ? p : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function syncButtons() {
+    const p = loaded();
+    const btn = $("adjust");
+    btn.disabled = !p;
+    btn.title = p
+      ? "Read the page and turn this payload the right way round"
+      : "Load a payload first";
+  }
+
   chrome.storage.local.get("payload").then((r) => {
     if (r.payload) {
       ta.value = r.payload;
       show(summarise(r.payload, "Restored from last time:"));
     }
+    syncButtons();
   });
 
   let saveTimer;
   ta.addEventListener("input", () => {
+    syncButtons();
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => chrome.storage.local.set({ payload: ta.value }), 250);
   });
@@ -57,6 +80,7 @@
   $("clear").addEventListener("click", () => {
     ta.value = "";
     chrome.storage.local.remove("payload");
+    syncButtons();
     show("Cleared.");
   });
 
@@ -65,6 +89,7 @@
     if (!f) return;
     ta.value = await f.text();
     chrome.storage.local.set({ payload: ta.value });
+    syncButtons();
     show(summarise(ta.value, `Loaded ${esc(f.name)}:`));
     e.target.value = "";
   });
@@ -102,7 +127,21 @@
     );
   }
 
-  $("swap").addEventListener("click", () => {
+  function flip(p) {
+    const q = Object.assign({}, p);
+    q.response_a = p.response_b;
+    q.response_b = p.response_a;
+    if (p.fingerprints) q.fingerprints = { a: p.fingerprints.b, b: p.fingerprints.a };
+    if (p.preference) q.preference = mirrorPreference(p.preference);
+    if (p.preference_explanation) q.preference_explanation = swapTokens(p.preference_explanation);
+    return q;
+  }
+
+  // A/B Adjust: read the page, then turn the payload to match THIS render.
+  // It is not a blind swap. When the page is already the right way round it
+  // says so and changes nothing, and when it cannot tell the panes apart it
+  // prints what it saw rather than guessing.
+  $("adjust").addEventListener("click", async () => {
     let p;
     try {
       p = parsePayload();
@@ -110,24 +149,91 @@
       show(`<span class="bad">${esc(e.message)}</span>`);
       return;
     }
-    const q = Object.assign({}, p);
-    q.response_a = p.response_b;
-    q.response_b = p.response_a;
-    if (p.fingerprints) q.fingerprints = { a: p.fingerprints.b, b: p.fingerprints.a };
-    if (p.preference) q.preference = mirrorPreference(p.preference);
-    if (p.preference_explanation) q.preference_explanation = swapTokens(p.preference_explanation);
-    ta.value = JSON.stringify(q, null, 2);
-    chrome.storage.local.set({ payload: ta.value });
-    show(
-      '<span class="ok">Swapped.</span> The two rating sets traded places, the preference ' +
-        `is now ${esc(q.preference || "unset")}, and @Response_A / @Response_B in the ` +
-        'explanation were exchanged.\n<span class="warn">Read the explanation before ' +
-        "filling</span> — swapping the tokens is mechanical and the sentences around them " +
-        "may no longer hold."
-    );
+    show("Reading the page...");
+    try {
+      const { best } = await execute("orient", p);
+      const L = [uidLine(best.uid)];
+
+      if (best.uid && best.uid.state === "mismatch") {
+        L.push("Nothing was changed. Load the payload for this task.");
+        show(L.filter(Boolean).join("\n"));
+        return;
+      }
+
+      const m = best.mapping || {};
+      if (m.panes && (m.panes.a || m.panes.b)) {
+        L.push("\nOn screen:");
+        L.push(`  Response A: ${esc(m.panes.a || "(empty)")}`);
+        L.push(`  Response B: ${esc(m.panes.b || "(empty)")}`);
+      }
+
+      if (!m.known) {
+        L.push(`\n<span class="warn">Could not tell the panes apart:</span> ${esc(m.why || "")}.`);
+        L.push("Nothing was changed. Check the two openings above against the payload yourself.");
+        show(L.filter(Boolean).join("\n"));
+        return;
+      }
+      if (m.aligned) {
+        L.push(`\n<span class="ok">Already the right way round.</span> ${esc(m.why)}.`);
+        L.push("Nothing was changed.");
+        show(L.filter(Boolean).join("\n"));
+        return;
+      }
+
+      const q = flip(p);
+      ta.value = JSON.stringify(q, null, 2);
+      chrome.storage.local.set({ payload: ta.value });
+      syncButtons();
+      L.push(`\n<span class="ok">Adjusted.</span> ${esc(m.why)}.`);
+      L.push(
+        "The two rating sets traded places, the preference is now " +
+          `${esc(q.preference || "unset")}, and @Response_A / @Response_B in the explanation ` +
+          "were exchanged."
+      );
+      L.push(
+        '<span class="warn">Read the explanation before filling.</span> Exchanging the tokens ' +
+          "is mechanical, and the sentences around them may no longer hold."
+      );
+      show(L.filter(Boolean).join("\n"));
+    } catch (e) {
+      show(`<span class="bad">${esc(e.message)}</span>`);
+    }
   });
 
   // -------------------------------------------------------------- running
+
+  // Runs one op in the page and hands back the frame that did the work. The
+  // form may sit in an iframe, so the frame is chosen by what it found rather
+  // than by being first: the panes and the UID for an orient, the rendered
+  // questions for a scan, the written sections for a fill.
+  async function execute(op, payload) {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab || !tab.id) throw new Error("no active tab");
+    if (/^(chrome|edge|about|chrome-extension):/i.test(tab.url || "")) {
+      throw new Error("this is a browser page; open the task page first");
+    }
+    const frames = await chrome.scripting.executeScript({
+      target: { tabId: tab.id, allFrames: true },
+      func: pageOps,
+      args: [op, payload],
+    });
+    const results = frames.map((f) => f.result).filter(Boolean);
+    if (!results.length) throw new Error("the page returned nothing");
+
+    const found = [
+      (r) => r.mapping && r.mapping.known,
+      (r) => r.mapping && r.mapping.panes && (r.mapping.panes.a || r.mapping.panes.b),
+      (r) => r.taskUid,
+      (r) => r.scan && Object.values(r.scan.fields || {}).some((f) => f.present),
+      (r) => Object.keys(r.sections || {}).length,
+    ];
+    const order = op === "orient" ? found : found.slice(3).concat(found.slice(0, 3));
+    for (const test of order) {
+      const hit = results.find(test);
+      if (hit) return { best: hit, frameCount: results.length };
+    }
+    return { best: results[0], frameCount: results.length };
+  }
 
   async function run(op) {
     let payload = null;
@@ -142,24 +248,8 @@
     }
     show("Working...");
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tab || !tab.id) throw new Error("no active tab");
-      if (/^(chrome|edge|about|chrome-extension):/i.test(tab.url || "")) {
-        throw new Error("this is a browser page; open the task page first");
-      }
-      const frames = await chrome.scripting.executeScript({
-        target: { tabId: tab.id, allFrames: true },
-        func: pageOps,
-        args: [op, payload],
-      });
-      const results = frames.map((f) => f.result).filter(Boolean);
-      if (!results.length) throw new Error("the page returned nothing");
-      // The form may sit in an iframe, so prefer the frame that actually found it.
-      const best =
-        results.find((r) => r.scan && Object.values(r.scan.fields || {}).some((f) => f.present)) ||
-        results.find((r) => Object.keys(r.sections || {}).length) ||
-        results[0];
-      render(op, best, results.length);
+      const { best, frameCount } = await execute(op, payload);
+      render(op, best, frameCount);
     } catch (e) {
       show(`<span class="bad">${esc(e.message)}</span>`);
     }
@@ -167,10 +257,25 @@
 
   // -------------------------------------------------------------- printing
 
+  function uidLine(u) {
+    if (!u) return "";
+    if (u.state === "match") return '<span class="ok">Task UID matches the payload.</span>';
+    if (u.state === "mismatch") {
+      return (
+        `<span class="bad">WRONG TASK: this page is ${esc(u.page)}, the payload is for ` +
+        `${esc(u.payload)}.</span> A fill is refused.`
+      );
+    }
+    if (u.state === "page-unknown") {
+      return '<span class="warn">No UID found on this page,</span> so the payload could not be matched to it.';
+    }
+    return '<span class="warn">The payload has no task_uid,</span> so it could not be matched to this page.';
+  }
+
   function mappingLine(m) {
     if (!m) return "";
     if (m.conflict) {
-      return `<span class="bad">A/B MISMATCH: ${esc(m.why)}.</span> Press Swap A/B.`;
+      return `<span class="bad">A/B MISMATCH: ${esc(m.why)}.</span> Press A/B Adjust.`;
     }
     if (m.known) return `<span class="ok">A/B checks out:</span> ${esc(m.why)}.`;
     return `<span class="warn">A/B not checked:</span> ${esc(m.why)}. Confirm it yourself.`;
@@ -179,6 +284,7 @@
   function render(op, r, frameCount) {
     if (op === "scan" || op === "verify") return renderScan(op, r, frameCount);
     const L = [];
+    L.push(uidLine(r.uid));
     L.push(mappingLine(r.mapping));
     for (const key of Object.keys(r.sections)) {
       const s = r.sections[key];
@@ -204,7 +310,13 @@
     const s = r.scan || {};
     const L = [];
     L.push(`<span class="ok">Scanned</span> ${esc(s.title || "")}`);
+    L.push(uidLine(r.uid));
     L.push(mappingLine(r.mapping));
+    if (r.mapping && r.mapping.panes && (r.mapping.panes.a || r.mapping.panes.b)) {
+      L.push("\nOn screen:");
+      L.push(`  Response A: ${esc(r.mapping.panes.a || "(empty)")}`);
+      L.push(`  Response B: ${esc(r.mapping.panes.b || "(empty)")}`);
+    }
     L.push("\nSections:");
     for (const [name, state] of Object.entries(s.sections || {})) {
       L.push(`  <span class="${state === "open" ? "ok" : "bad"}">${esc(state)}</span>  ${esc(name)}`);

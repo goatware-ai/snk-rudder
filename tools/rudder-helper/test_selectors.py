@@ -24,12 +24,18 @@ from html import unescape
 from html.parser import HTMLParser
 from pathlib import Path
 
+UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.I)
+PANE_CAPTURE = None  # set in load()
+HEADER_CAPTURE = None
+
 HERE = Path(__file__).resolve().parent
 CAPTURES = {
     "a": HERE.parent / "section-1.html",
     "b": HERE.parent / "section-2.html",
     None: HERE.parent / "section-3.html",
 }
+PANES_HTML = HERE.parent / "prompt-response.html"
+HEADER_HTML = HERE.parent / "task-header.html"
 
 # Mirrors PER_RESPONSE / PREFERENCE in page.js. Third item is the gate that has
 # to hold a value for the question to render at all.
@@ -132,6 +138,226 @@ def decode_label(raw: str) -> str:
 
 def squeeze(s: str) -> str:
     return re.sub(r"\s+", "", s).lower()
+
+
+class Panes(HTMLParser):
+    """The left panel: each "Response A"/"Response B" heading and its rendered body.
+
+    Mirrors paneHeadings() and paneBody() in page.js: a leaf heading whose text
+    is exactly the pane name, then the NEXT [data-testid="rich-doc-rendered"] in
+    document order. The prompt sits in the same shape under "Context", which is
+    why the body has to be the next rendered doc after the heading.
+
+    Order is tracked by START tag, which is the whole point: a pane's body holds
+    headings of its own, so an end-tag ordering puts every heading inside
+    Response A ahead of Response A's own body and the pairing comes out empty.
+    """
+
+    VOID = {"br", "img", "input", "hr", "meta", "link", "path", "source", "area", "col"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.depth = 0
+        self.order = []          # ("head", text) / ("doc", id), in start order
+        self.docs = {}
+        self.head = None
+        self.doc = None
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag in ("h1", "h2", "h3", "h4", "h5", "h6") and self.head is None:
+            self.head = (self.depth, [], len(self.order))
+            self.order.append(["head", ""])
+        if a.get("data-testid") == "rich-doc-rendered" and self.doc is None:
+            self.doc = (self.depth, [], len(self.docs))
+            self.order.append(["doc", len(self.docs)])
+        if tag not in self.VOID:
+            self.depth += 1
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+        if tag not in self.VOID:
+            self.depth -= 1
+
+    def handle_endtag(self, tag):
+        if tag in self.VOID:
+            return
+        self.depth -= 1
+        if self.head and self.depth == self.head[0]:
+            self.order[self.head[2]][1] = " ".join("".join(self.head[1]).split())
+            self.head = None
+        if self.doc and self.depth == self.doc[0]:
+            self.docs[self.doc[2]] = " ".join("".join(self.doc[1]).split())
+            self.doc = None
+
+    def handle_data(self, data):
+        if self.head:
+            self.head[1].append(data)
+        if self.doc:
+            self.doc[1].append(data)
+
+    def panes(self):
+        out, pending = {}, None
+        for kind, value in self.order:
+            if kind == "head":
+                m = re.fullmatch(r"response\s*([ab])\s*:?", value, re.I)
+                if m:
+                    pending = m.group(1).lower()
+            elif kind == "doc" and pending is not None:
+                if pending not in out:
+                    out[pending] = self.docs.get(value, "")
+                pending = None
+        return out
+
+
+def match_key(s):
+    """Mirrors matchKey() in page.js: fold markdown and the page's rendering together."""
+    s = (s or "").lower()
+    s = re.sub(r"[\u2018\u2019\u201b]", "'", s)
+    s = re.sub(r"[\u201c\u201d]", '"', s)
+    # deleted, not spaced: mirrors matchKey() in page.js, and the reason is
+    # there: a space would leave "pattern , and" against the page's "pattern, and"
+    s = re.sub(r"[*_`#>~\[\]\u2026]", "", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def orient(fingerprints, panes):
+    """Mirrors orientation() in page.js. Returns 'aligned', 'reversed' or a reason."""
+    key = {k: match_key(v)[:60] for k, v in (fingerprints or {}).items()}
+    body = {k: match_key(v) for k, v in panes.items()}
+
+    def score(want, text):
+        if not want or not text:
+            return 0
+        if text.startswith(want):
+            return 3
+        if want in text:
+            return 2
+        return 1 if want[:30] and want[:30] in text else 0
+
+    straight = score(key.get("a"), body.get("a")) + score(key.get("b"), body.get("b"))
+    crossed = score(key.get("a"), body.get("b")) + score(key.get("b"), body.get("a"))
+    if not straight and not crossed:
+        return "neither opening was found in either pane"
+    if straight == crossed:
+        return "the two openings match both panes equally well"
+    return "aligned" if straight > crossed else "reversed"
+
+
+class Header(HTMLParser):
+    """Sibling structure of the header's UID line.
+
+    Mirrors readTaskUid() in page.js rather than scanning for something
+    uuid-shaped: it finds the LEAF element whose text is exactly "UID:" and
+    reads the uuid out of the following sibling. The form's own element ids are
+    uuid-shaped too, so the label is what makes the read unambiguous.
+    """
+
+    VOID = {"br", "img", "input", "hr", "meta", "link", "path", "source", "area", "col"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.depth = 0
+        self.stack = []           # open elements: [depth, text parts, child count]
+        self.closed = []          # (depth, text, had_children), in close order
+
+    def handle_starttag(self, tag, attrs):
+        if self.stack:
+            self.stack[-1][2] += 1
+        if tag not in self.VOID:
+            self.stack.append([self.depth, [], 0])
+            self.depth += 1
+
+    def handle_startendtag(self, tag, attrs):
+        if self.stack:
+            self.stack[-1][2] += 1
+
+    def handle_endtag(self, tag):
+        if tag in self.VOID or not self.stack:
+            return
+        self.depth -= 1
+        d, parts, kids = self.stack.pop()
+        text = " ".join("".join(parts).split())
+        self.closed.append((d, text, kids > 0))
+        if self.stack:
+            self.stack[-1][1].append(" " + text + " ")
+
+    def handle_data(self, data):
+        if self.stack:
+            self.stack[-1][1].append(data)
+
+    def uid(self):
+        # close order at one depth is sibling order, so the label's sibling is
+        # the next element closed at the same depth
+        for i, (depth, text, kids) in enumerate(self.closed):
+            if kids or not re.fullmatch(r"uid\s*:?", text, re.I):
+                continue
+            for depth2, text2, _ in self.closed[i + 1:]:
+                if depth2 != depth:
+                    continue
+                m = UUID_RE.search(text2)
+                return m.group(0).lower() if m else None
+        return None
+
+
+def read_uid(html):
+    h = Header()
+    h.feed(html)
+    return h.uid()
+
+
+def check_panes(c):
+    if not PANES_HTML.exists():
+        c.failures.append(f"missing capture: {PANES_HTML}")
+        return {}
+    p = Panes()
+    p.feed(PANES_HTML.read_text())
+    panes = p.panes()
+    c.ok("a" in panes, 'no "Response A" pane found in the left-panel capture')
+    c.ok("b" in panes, 'no "Response B" pane found in the left-panel capture')
+    for side, text in panes.items():
+        c.ok(len(text) > 40,
+             f"pane {side.upper()} body is only {len(text)} chars; page.js would have nothing to match")
+    if len(panes) == 2:
+        c.ok(panes["a"] != panes["b"], "both panes read as the same text, so they cannot be told apart")
+        # the prompt must NOT be picked up as a pane body
+        c.ok(not panes["a"].lower().startswith("if i wanted to create"),
+             "pane A picked up the Context prompt instead of the response")
+    return panes
+
+
+def check_uid(c):
+    if not HEADER_HTML.exists():
+        c.failures.append(f"missing capture: {HEADER_HTML}")
+        return
+    html = HEADER_HTML.read_text()
+    uid = read_uid(html)
+    c.ok(uid is not None, 'no UID read from the header capture via the "UID:" label')
+    if not uid:
+        return
+    c.ok(bool(UUID_RE.fullmatch(uid)), f"the UID read back is not a uuid: {uid!r}")
+    present = UUID_RE.search(html)
+    c.ok(present and uid == present.group(0).lower(),
+         "the UID read via the label is not the uuid in the capture")
+    # the label read must not be satisfied by a uuid that is NOT beside a label
+    c.ok(read_uid('<div><span>7f3c1a2b-0000-4000-8000-000000000000</span></div>') is None,
+         "a uuid with no UID: label was still read as the task id")
+
+
+def check_orientation(panes, c):
+    """Both placements, from fingerprints derived from the captured panes themselves."""
+    if len(panes) != 2:
+        return
+    fp = {"a": panes["a"][:80], "b": panes["b"][:80]}
+    c.ok(orient(fp, panes) == "aligned", "a payload matching the panes was not read as aligned")
+    c.ok(orient({"a": fp["b"], "b": fp["a"]}, panes) == "reversed",
+         "a payload written the other way round was not read as reversed")
+    # markdown emphasis in the fingerprint must not defeat the match
+    marked = {"a": "**" + panes["a"][:40] + "**", "b": "## " + panes["b"][:40]}
+    c.ok(orient(marked, panes) == "aligned",
+         "markdown markers in a fingerprint defeated the match against the rendered pane")
+    c.ok(orient({"a": "something that is not on the page at all"}, panes) not in ("aligned", "reversed"),
+         "a fingerprint absent from both panes was still given a verdict")
 
 
 class Check:
@@ -301,6 +527,9 @@ def main() -> int:
     parsed = load()
     c = Check()
     check_form(parsed, c)
+    panes = check_panes(c)
+    check_uid(c)
+    check_orientation(panes, c)
     for arg in sys.argv[1:]:
         path = Path(arg)
         if not path.exists():
