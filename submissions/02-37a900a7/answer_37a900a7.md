@@ -1,0 +1,649 @@
+# Answer sheet — task 37a900a7-4d5f-4038-b8d3-055f079a4016
+
+- Project: Rudder Comparison Preference (`67eb3460-2595-415d-be91-b464871b428e`)
+- Prompt id: lm_arena_20260818_55k_42705  ·  Fetched: 2026-09-22
+- Fingerprint x (`response_a_37a900a7.md`): "What you’re describing is a **real conversational pattern**, and it has a name in communication research: one …"
+- Fingerprint y (`response_b_37a900a7.md`): "What you’re describing is a very specific kind of tiredness: the feeling that you’re running the *relational e…"
+
+> **Check the A/B mapping first.** The form randomizes which slot shows
+> as "Response A" on screen. Match the fingerprints above against the
+> live page; if they are swapped, swap the two rating sections below
+> before transcribing, because the form's Response A column must
+> describe whatever the screen labels Response A.
+
+Scoring rubrics are not repeated here — see `docs/rudder-guidelines.md`.
+Sections and questions below appear in the same order as the live form,
+so this sheet can be read top to bottom while filling it in.
+
+---
+
+## Rating Assessment - Response A
+
+#### Constraint Following
+`constraint_following_response_a`
+> Does the response comply with explicit constraints stated in the prompt?
+> A constraint is an explicit requirement that can be operationalized as a checkable condition on the response. Ask yourself:
+
+Choose one: `5` / `4` / `3` / `2` / `1` / `not_applicable`
+  - `5` — 5: Follows every explicit constraint precisely and completely.
+  - `4` — 4: Follows every explicit constraint with only minor deviations (e.g., 210 words against a "≤ 200 word" constraint).
+  - `3` — 3: Follows all major constraints; misses on one minor constraint without undermining usability.
+  - `2` — 2: Misses one or more explicit constraints in ways that materially affect usability.
+  - `1` — 1: Misses most or all explicit constraints.
+  - `not_applicable` — N/A: Prompt contains no explicit constraints.
+
+**ANSWER:** not_applicable
+
+#### Failure-mode flags
+`constraint_following_checkboxes_response_a`
+> Failure-mode flags (check all that apply):
+
+Check all that apply (leave all unchecked if none):
+- [ ] Length or count constraint missed
+- [ ] Format or structure constraint missed
+- [ ] Language constraint missed
+- [ ] Required ("must include") element absent
+- [ ] Forbidden ("must not include") element present
+- [ ] Scope limitation exceeded
+
+#### Are there other failure-modes to flag?
+`constraint_following_flag_missing_response_a`
+
+**ANSWER (yes / no):** no
+
+#### Describe the issue and why it applies
+`constraint_following_other_text_response_a`
+
+**ANSWER (text):**
+
+> 
+
+#### Intent Understanding
+`intent_understanding_rating_response_a`
+> Does the response correctly interpret what the user is actually asking for?
+> Look at whether the model inferred the user's goal correctly, including both the direct ask and the implicit needs behind it. A response can obey every stated constraint and still misread the user's u
+
+Choose one: `5` / `4` / `3` / `2` / `1`
+  - `5` — 5: Correctly interprets the user's goal, including implicit needs and nuance where applicable. For a simple prompt with no hidden nuance, a response t
+  - `4` — 4: Correctly interprets the core goal and most secondary nuance; minor implicit needs may be unaddressed.
+  - `3` — 3: Correctly interprets the core goal; secondary nuance or implicit needs are clearly underexplored, but the main ask is met.
+  - `2` — 2: Partially misunderstands by addressing the wrong aspect or missing a key part of the user's goal.
+  - `1` — 1: Completely misinterprets what the user wanted; no reasonable reading of the prompt supports the response.
+
+**ANSWER:** 5
+
+#### Failure-mode flags
+`intent_understanding_checkboxes_response_a`
+> Failure-mode flags:
+
+Check all that apply (leave all unchecked if none):
+- [ ] Did not address an ambiguity present in the prompt
+
+#### Are there other failure-modes to flag?
+`intent_understanding_flag_missing_response_a`
+
+**ANSWER (yes / no):** no
+
+#### Describe the issue and why it applies
+`intent_understanding_other_text_response_a`
+
+**ANSWER (text):**
+
+> 
+
+#### Correctness
+`correctness_status_response_a`
+> Does the response contain factual errors or unwarranted confidence on uncertain or outdated claims?
+> Do NOT flag for:
+
+Choose one: `ok` / `flagged` / `not_sure`
+  - `ok` — OK: No issues spotted. Skip sub-flags.
+  - `flagged` — Flagged: One or more issues present (specify via sub-flags below).
+  - `not_sure` — I'm not sure: Cannot confidently assess correctness (e.g., unfamiliar technical domain). Skip sub-flags.
+
+**ANSWER:** ok
+
+#### Failure-mode flags
+`correctness_checkboxes_response_a`
+> Sub-flags (check all that apply if flagged):
+
+Check all that apply (leave all unchecked if none):
+- [ ] Contains a false claim
+- [ ] Accepts a faulty premise or mistake in the prompt without correcting it
+- [ ] Fabricates information (quotes, citations, statistics, study names, proper nouns, URLs)
+- [ ] States an uncertain or contested claim with unwarranted confidence
+- [ ] Information is outdated
+- [ ] Contains contradictions
+
+#### Are there other failure-modes to flag?
+`correctness_flag_missing_response_a`
+
+**ANSWER (yes / no):** no
+
+#### Describe the issue and why it applies
+`correctness_other_text_response_a`
+
+**ANSWER (text):**
+
+> 
+
+#### Coverage
+`coverage_rating_response_a`
+> Does the response address everything the prompt asks for, at the depth the prompt called for?
+> Before scoring, identify what the prompt asks for. Briefly note the parts (e.g., "explain X, compare to Y, recommend an option"). A simple prompt may ask for only one thing. Score against this list.
+
+Choose one: `5` / `4` / `3` / `2` / `1`
+  - `5` — 5: Addresses everything the prompt asks for, at the depth it called for. For simple prompts, this means a clean, direct answer—short answers can score
+  - `4` — 4: Addresses everything the prompt asks for, but one part is slightly underdeveloped relative to what the prompt called for.
+  - `3` — 3: Addresses the main parts of the prompt; one or more secondary parts are underexplored or only partially addressed.
+  - `2` — 2: Misses a significant part of what the prompt explicitly or strongly implied.
+  - `1` — 1: Severely incomplete; fails to address core parts of the prompt (includes unwarranted refusals).
+
+**ANSWER:** 5
+
+#### Failure-mode flags
+`coverage_checkboxes_response_a`
+
+Check all that apply (leave all unchecked if none):
+- [ ] Key information is missing
+- [ ] Misses one or more specific prompt requirement(s)
+- [ ] Contains unwarranted refusal
+
+#### Are there other failure-modes to flag?
+`coverage_flag_missing_response_a`
+
+**ANSWER (yes / no):** no
+
+#### Describe the issue and why it applies
+`coverage_other_text_response_a`
+
+**ANSWER (text):**
+
+> 
+
+#### Focus
+`focus_rating_response_a`
+> Is the response appropriately focused on the user's intended request, without unnecessary content?
+> Covers:
+
+Choose one: `5` / `4` / `3` / `2` / `1`
+  - `5` — 5: Precisely focused; every sentence clearly serves the user's request.
+  - `4` — 4: Well-focused with only minor excess that doesn't distract.
+  - `3` — 3: Reasonably focused; some padding or tangents.
+  - `2` — 2: Noticeably unfocused; significant tangents, padding, or repetition force the reader to work to find relevant content.
+  - `1` — 1: Rambling, off-topic, or severely bloated; dominated by irrelevant content.
+
+**ANSWER:** 4
+
+#### Failure-mode flags
+`focus_checkboxes_response_a`
+
+Check all that apply (leave all unchecked if none):
+- [ ] Contains irrelevant information
+- [ ] Contains unnecessary repetition or redundant phrasing
+
+#### Are there other failure-modes to flag?
+`focus_flag_missing_response_a`
+
+**ANSWER (yes / no):** no
+
+#### Describe the issue and why it applies
+`focus_other_text_response_a`
+
+**ANSWER (text):**
+
+> 
+
+#### Clarity
+`clarity_rating_response_a`
+> Is the response easy to read at both the sentence level and the structural level?
+> Clarity combines two dimensions, both of which matter at every rating level:
+
+Choose one: `5` / `4` / `3` / `2` / `1`
+  - `5` — 5: Effortless to read. Prose is clean and structure enhances comprehension.
+  - `4` — 4: Easy to follow with minor friction in prose or structure.
+  - `3` — 3: Readable, but reader occasionally needs to re-read to follow the flow or find information.
+  - `2` — 2: Significant prose or structural problems; reader has to actively work to reconstruct meaning.
+  - `1` — 1: Largely incoherent or jumbled; reader can't follow what the response is saying and has to guess at meaning.
+
+**ANSWER:** 4
+
+#### Prose-level flags
+`clarity_prose_level_checkboxes_response_a`
+> Failure-mode flags (check all that apply):
+> Prose-level:
+
+Check all that apply (leave all unchecked if none):
+- [ ] Contains inconsistencies
+- [ ] Contains awkward or confusing phrasing
+
+#### Structural flags
+`clarity_structural_checkboxes_response_a`
+> Structural:
+
+Check all that apply (leave all unchecked if none):
+- [ ] Excessive or unnecessary formatting
+- [ ] Insufficient formatting
+- [ ] Disorganized or illogical structure
+
+#### Are there other failure-modes to flag?
+`clarity_flag_missing_response_a`
+
+**ANSWER (yes / no):** no
+
+#### Describe the issue and why it applies
+`clarity_other_text_response_a`
+
+**ANSWER (text):**
+
+> 
+
+#### Tone
+`tone_rating_response_a`
+> Does the response's voice and style match what this prompt warrants?
+> Focus on the model's persona, voice, and style (how it "sounds"), independent of whether the content is well-written (see Clarity) or well-focused (see Focus).
+
+Choose one: `5` / `4` / `3` / `2` / `1`
+  - `5` — 5: Tone is well calibrated, matching what the prompt warrants and natural throughout.
+  - `4` — 4: Tone is appropriate with room for minor refinement.
+  - `3` — 3: Tone is acceptable, even if not especially well-matched.
+  - `2` — 2: Tone is off-putting or noticeably mismatched.
+  - `1` — 1: Tone is clearly inappropriate and severely undermines the response.
+
+**ANSWER:** 4
+
+#### Failure-mode flags
+`tone_checkboxes_response_a`
+
+Check all that apply (leave all unchecked if none):
+- [ ] Overly stiff or robotic
+- [ ] Preachy, moralizing, or condescending
+- [ ] Excessive positivity, flattery, or hype
+- [ ] Mismatched tone (e.g., overly formal or casual, serious reply to a joking prompt)
+- [ ] Mismatched to audience expertise (jargon-heavy for a beginner, oversimplified for an expert)
+- [ ] Inconsistent voice or style across the response
+
+#### Are there other failure-modes to flag?
+`tone_flag_missing_response_a`
+
+**ANSWER (yes / no):** no
+
+#### Describe the tone issue
+`tone_other_text_response_a`
+
+**ANSWER (text):**
+
+> 
+
+#### Follow-up
+`followup_included_response_a`
+> Does the response make the right choice about whether to include follow-up, and if included, is it useful?
+> Follow-up is forward-looking content: suggested next steps, offers of additional help, or related considerations the user might want next.
+
+Choose one: `yes` / `no`
+  - `yes` — Yes
+  - `no` — No
+
+**ANSWER:** yes
+
+#### If follow-up IS included, assess it
+`followup_assessment_yes_response_a`
+> If YES — how did the follow-up land?
+
+Choose one: `helped` / `neutral` / `hurt`
+  - `helped` — Helped: Follow-up fits the user's likely next step and adds value beyond the main response.
+  - `neutral` — Neutral: Follow-up is defensible but generic, obvious, or only mildly useful — neither adds nor detracts.
+  - `hurt` — Hurt: Follow-up was not warranted, distracts from the main response, or points at the wrong next step.
+
+**ANSWER:** helped
+
+#### If follow-up is NOT included, assess the omission
+`followup_assessment_no_response_a`
+> If NO — was omitting follow-up the right call?
+
+Choose one: `correct_omission` / `neutral` / `gap`
+  - `correct_omission` — Correct omission: The prompt called for a clean answer; leaving out follow-up was the right call.
+  - `neutral` — Neutral: A follow-up could have helped but its absence doesn't meaningfully weaken the response.
+  - `gap` — Gap: The prompt strongly called for a next step or related consideration, and its absence leaves the user without something they would clearly want.
+
+**ANSWER:** 
+
+#### Overall rating
+`overall_rating_response_a`
+> How helpful is this response to the user, given this specific prompt?
+> Consider:
+
+Choose one: `5` / `4` / `3` / `2` / `1`
+  - `5` — 5: Extremely helpful. Fully satisfies the prompt. Acts on what the user asked for, accurately and to the point. Strong on the axes that matter most fo
+  - `4` — 4: Mostly helpful. Largely satisfies the prompt with room for improvement. Minor issues on secondary axes, or a small issue on a critical axis that do
+  - `3` — 3: Partially helpful. Misses the goal of the prompt in some way. Notable issue on a critical axis, or multiple issues on secondary axes. A user would 
+  - `2` — 2: Slightly helpful. Mostly doesn't capture what the user was looking for, but is usable in a small way. Significant issue on a critical axis that a u
+  - `1` — 1: Not helpful. Fails the prompt. Critical axes are severely off, or the response is unusable (includes unwarranted refusals).
+
+**ANSWER:** 4
+
+#### Explain your rating by addressing the following:
+`overall_rationale_response_a`
+> Refer to the response as "the response" (not "Response A" or "Response B"). This is a standalone assessment.
+> Avoid first-person statements ("I think that…").
+
+**ANSWER (text):**
+
+> The response answers the question directly by naming five separate mechanisms behind the asymmetry, among them roles that form silently and the point that over-functioning invites under-functioning, so the user is handed a cause rather than only a label for the feeling. It also tests the account it was given. The confirmation bias section asks the user to track several exchanges and to notice whether they themselves ever reply with nothing more than brief acknowledgement, and the closing questions offer modality mismatch as a real alternative to inequity. That restraint matters when only one side of the friendship has been described. The practical steps are concrete and include wording the user could say as it stands. Against that, the opening claim that the pattern has a name in communication research uses turn-taking loosely, and the pull-back experiment in Step 1 overlaps the judgement questions offered later. The closing section also escalates to talk of consumption and a red flag, which goes past anything the user reported.
+
+---
+
+## Rating Assessment - Response B
+
+#### Constraint Following
+`constraint_following_response_b`
+
+Choose one: `5` / `4` / `3` / `2` / `1` / `not_applicable`
+_(same scale as Constraint Following above)_
+
+**ANSWER:** not_applicable
+
+#### Failure-mode flags
+`constraint_following_checkboxes_response_b`
+
+Check all that apply (leave all unchecked if none):
+- [ ] Length or count constraint missed
+- [ ] Format or structure constraint missed
+- [ ] Language constraint missed
+- [ ] Required ("must include") element absent
+- [ ] Forbidden ("must not include") element present
+- [ ] Scope limitation exceeded
+
+#### Are there other failure-modes to flag?
+`constraint_following_flag_missing_response_b`
+
+**ANSWER (yes / no):** no
+
+#### Describe the issue and why it applies
+`constraint_following_other_text_response_b`
+
+**ANSWER (text):**
+
+> 
+
+#### Intent Understanding
+`intent_understanding_rating_response_b`
+
+Choose one: `5` / `4` / `3` / `2` / `1`
+_(same scale as Intent Understanding above)_
+
+**ANSWER:** 5
+
+#### Failure-mode flags
+`intent_understanding_checkboxes_response_b`
+
+Check all that apply (leave all unchecked if none):
+- [ ] Did not address an ambiguity present in the prompt
+
+#### Are there other failure-modes to flag?
+`intent_understanding_flag_missing_response_b`
+
+**ANSWER (yes / no):** no
+
+#### Describe the issue and why it applies
+`intent_understanding_other_text_response_b`
+
+**ANSWER (text):**
+
+> 
+
+#### Correctness
+`correctness_status_response_b`
+
+Choose one: `ok` / `flagged` / `not_sure`
+_(same scale as Correctness above)_
+
+**ANSWER:** ok
+
+#### Failure-mode flags
+`correctness_checkboxes_response_b`
+
+Check all that apply (leave all unchecked if none):
+- [ ] Contains a false claim
+- [ ] Accepts a faulty premise or mistake in the prompt without correcting it
+- [ ] Fabricates information (quotes, citations, statistics, study names, proper nouns, URLs)
+- [ ] States an uncertain or contested claim with unwarranted confidence
+- [ ] Information is outdated
+- [ ] Contains contradictions
+
+#### Are there other failure-modes to flag?
+`correctness_flag_missing_response_b`
+
+**ANSWER (yes / no):** no
+
+#### Describe the issue and why it applies
+`correctness_other_text_response_b`
+
+**ANSWER (text):**
+
+> 
+
+#### Coverage
+`coverage_rating_response_b`
+
+Choose one: `5` / `4` / `3` / `2` / `1`
+_(same scale as Coverage above)_
+
+**ANSWER:** 5
+
+#### Failure-mode flags
+`coverage_checkboxes_response_b`
+
+Check all that apply (leave all unchecked if none):
+- [ ] Key information is missing
+- [ ] Misses one or more specific prompt requirement(s)
+- [ ] Contains unwarranted refusal
+
+#### Are there other failure-modes to flag?
+`coverage_flag_missing_response_b`
+
+**ANSWER (yes / no):** no
+
+#### Describe the issue and why it applies
+`coverage_other_text_response_b`
+
+**ANSWER (text):**
+
+> 
+
+#### Focus
+`focus_rating_response_b`
+
+Choose one: `5` / `4` / `3` / `2` / `1`
+_(same scale as Focus above)_
+
+**ANSWER:** 3
+
+#### Failure-mode flags
+`focus_checkboxes_response_b`
+
+Check all that apply (leave all unchecked if none):
+- [ ] Contains irrelevant information
+- [x] Contains unnecessary repetition or redundant phrasing
+
+#### Are there other failure-modes to flag?
+`focus_flag_missing_response_b`
+
+**ANSWER (yes / no):** no
+
+#### Describe the issue and why it applies
+`focus_other_text_response_b`
+
+**ANSWER (text):**
+
+> 
+
+#### Clarity
+`clarity_rating_response_b`
+
+Choose one: `5` / `4` / `3` / `2` / `1`
+_(same scale as Clarity above)_
+
+**ANSWER:** 4
+
+#### Prose-level flags
+`clarity_prose_level_checkboxes_response_b`
+
+Check all that apply (leave all unchecked if none):
+- [ ] Contains inconsistencies
+- [ ] Contains awkward or confusing phrasing
+
+#### Structural flags
+`clarity_structural_checkboxes_response_b`
+
+Check all that apply (leave all unchecked if none):
+- [ ] Excessive or unnecessary formatting
+- [ ] Insufficient formatting
+- [ ] Disorganized or illogical structure
+
+#### Are there other failure-modes to flag?
+`clarity_flag_missing_response_b`
+
+**ANSWER (yes / no):** no
+
+#### Describe the issue and why it applies
+`clarity_other_text_response_b`
+
+**ANSWER (text):**
+
+> 
+
+#### Tone
+`tone_rating_response_b`
+
+Choose one: `5` / `4` / `3` / `2` / `1`
+_(same scale as Tone above)_
+
+**ANSWER:** 4
+
+#### Failure-mode flags
+`tone_checkboxes_response_b`
+
+Check all that apply (leave all unchecked if none):
+- [ ] Overly stiff or robotic
+- [ ] Preachy, moralizing, or condescending
+- [ ] Excessive positivity, flattery, or hype
+- [ ] Mismatched tone (e.g., overly formal or casual, serious reply to a joking prompt)
+- [ ] Mismatched to audience expertise (jargon-heavy for a beginner, oversimplified for an expert)
+- [ ] Inconsistent voice or style across the response
+
+#### Are there other failure-modes to flag?
+`tone_flag_missing_response_b`
+
+**ANSWER (yes / no):** no
+
+#### Describe the tone issue
+`tone_other_text_response_b`
+
+**ANSWER (text):**
+
+> 
+
+#### Follow-up
+`followup_included_response_b`
+
+Choose one: `yes` / `no`
+_(same scale as Follow-up above)_
+
+**ANSWER:** yes
+
+#### If follow-up IS included, assess it
+`followup_assessment_yes_response_b`
+
+Choose one: `helped` / `neutral` / `hurt`
+_(same scale as If follow-up IS included, assess it above)_
+
+**ANSWER:** helped
+
+#### If follow-up is NOT included, assess the omission
+`followup_assessment_no_response_b`
+
+Choose one: `correct_omission` / `neutral` / `gap`
+_(same scale as If follow-up is NOT included, assess the omission above)_
+
+**ANSWER:** 
+
+#### Overall rating
+`overall_rating_response_b`
+
+Choose one: `5` / `4` / `3` / `2` / `1`
+_(same scale as Overall rating above)_
+
+**ANSWER:** 4
+
+#### Explain your rating by addressing the following:
+`overall_rationale_response_b`
+
+**ANSWER (text):**
+
+> The response builds one coherent account of the asymmetry and opens with the sharpest statement of it, that one side is measuring effort while the other is measuring presence. The good listener trap and the split between processing mode and exploring mode explain how the pattern trains itself with nobody intending it, which answers the part of the question about why the difference is not obvious. It stays careful with the absent friend, repeating that she may simply be comfortable rather than doing anything wrong, and the suggested wording could be used as it stands. Coverage is complete, and the structure is easy to follow. The weakness is repetition. The fourth section restates the premise the user already supplied and re-lists the giving and receiving contrast drawn in the first, and the closing summary says again what the body had established. The answer therefore runs longer than the question needed, without the extra length reaching anything new.
+
+---
+
+## Overall preference
+
+#### Which model response do you prefer?
+`preference`
+> Consider:
+> Which response would you rather receive?
+
+Choose one: `A >> B` / `A > B` / `A = B` / `A < B` / `A << B`
+  - `A >> B` — A >> B: Response A is much better
+  - `A > B` — A > B: Response A is somewhat better
+  - `A = B` — A = B: Responses A and B are roughly equal in quality (use sparingly)
+  - `A < B` — A < B: Response B is somewhat better
+  - `A << B` — A << B: Response B is much better
+
+**ANSWER:** A > B
+
+#### Preference explanation
+`preference_explanation`
+> Explain your reasoning by addressing the following:
+> In this section, refer to the responses as "@Response_A" and "@Response_B".
+
+**ANSWER (text):**
+
+> @Response_A is preferred because it tests the account it was given instead of only explaining it. Its confirmation bias section asks the user to track several exchanges and to notice whether they themselves ever reply with nothing more than brief acknowledgement. Its closing questions then offer modality mismatch as a real alternative to inequity, which matters when only one side of a friendship has been described. @Response_B states in its second sentence that the unfairness is real and later that the exchange is unequal, and although it does supply a pattern test, it has committed to the conclusion before that test is run. The two are close on Coverage, since both explain the mechanism and both give usable wording for raising it. Focus separated them. @Response_B restates the user's own premise in its fourth section, re-lists the giving and receiving contrast it had already drawn, and closes on a summary that adds nothing to the body. @Response_A carries only a mild overlap between its pull-back experiment and its later judgement questions. The gap is moderate rather than large, because @Response_B is the more coherent single account and is gentler toward the absent friend, and because @Response_A leans on research vocabulary that it uses loosely.
+
+---
+
+## Review
+
+_Reviewer-only section — skip it when submitting as annotator._
+
+#### Do you accept or reject the submission?
+`review_decision`
+
+Choose one: `yes` / `no` / `needs_revision`
+  - `yes` — Accept
+  - `no` — Reject
+  - `needs_revision` — Needs Revision
+
+**ANSWER:** 
+
+#### Revision Notes
+`Revision Notes`
+
+**ANSWER (text):**
+
+> 
+
+#### Rejection Notes
+`Rejection Notes`
+
+**ANSWER (text):**
+
+> 
+
+#### Accept Notes
+`Accept Notes`
+
+**ANSWER (text):**
+
+> 
+
