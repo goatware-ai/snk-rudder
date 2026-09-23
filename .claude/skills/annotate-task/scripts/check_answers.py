@@ -378,8 +378,43 @@ AXIS_PATTERN = {
 }
 
 
+_FOLLOWUP_PATTERN = re.compile(r"\bfollow[ -]?ups?\b|\bnext step", re.I)
+
+
+# "Attribute forward language is needed throughout" (70afd761), quoting the
+# project's own Slack guidance: the attribute leads the sentence and the example
+# follows it, rather than the observation arriving first with the axis appended.
+# An axis that leads at least one sentence anywhere in the text passes, which is
+# a deliberately low bar: the check is for prose that never fronts an attribute
+# at all, not a ruling on every sentence.
+_FORWARD_WORDS = 3
+
+
 def _axes_named(text):
     return {axis for axis, pat in AXIS_PATTERN.items() if pat.search(text)}
+
+
+def _attribute_forward(text, axis):
+    """True if the axis opens at least one sentence."""
+    pat = AXIS_PATTERN[axis]
+    for s in sentences(text):
+        m = pat.search(s)
+        if m and len(re.findall(r"[A-Za-z][\w'-]*", s[:m.start()])) <= _FORWARD_WORDS:
+            return True
+    return False
+
+
+def _imperfect(answers, axis):
+    """Whether this axis's own answers assert a defect the prose has to carry."""
+    flags = []
+    for key in FLAG_FIELDS[axis]:
+        flags += list(answers.get(key) or [])
+    if flags:
+        return True
+    if axis == "correctness":
+        return str(answers.get("correctness_status", "")).lower() == "flagged"
+    rating = _int(answers.get(RATING_FIELD[axis]))
+    return rating is not None and rating <= 4
 
 
 def check_rating_evidence(payload, f):
@@ -397,19 +432,30 @@ def check_rating_evidence(payload, f):
                   "scores, so it has to say which axis each piece of evidence belongs to")
             continue
         for axis in AXES:
-            if axis in named:
+            imperfect = _imperfect(answers, axis)
+            if axis not in named:
+                if imperfect:
+                    rating = _int(answers.get(RATING_FIELD[axis]))
+                    scored = rating if rating is not None else "flagged"
+                    f.add("ERROR", "F7", where,
+                          f"{AXIS_LABEL[axis]} is scored {scored} but the rationale never names it; "
+                          "an axis that cost the response something has to be named, not implied")
                 continue
-            flags = []
-            for key in FLAG_FIELDS[axis]:
-                flags += list(answers.get(key) or [])
-            rating = _int(answers.get(RATING_FIELD[axis]))
-            imperfect = (rating is not None and rating <= 4) or bool(flags) or \
-                str(answers.get("correctness_status", "")).lower() == "flagged" and axis == "correctness"
-            if imperfect:
-                scored = rating if rating is not None else "flagged"
-                f.add("ERROR", "F7", where,
-                      f"{AXIS_LABEL[axis]} is scored {scored} but the rationale never names it; "
-                      "an axis that cost the response something has to be named, not implied")
+            if not _attribute_forward(text, axis):
+                f.add("ERROR" if imperfect else "WARN", "F8", where,
+                      f"{AXIS_LABEL[axis]} is mentioned but never opens a sentence; the guidance "
+                      "asks for attribute-forward prose, so lead with the attribute and let the "
+                      "example from the response follow it")
+
+        # Follow-up has no flag checkboxes, so C2 cannot speak for it. "Hurt"
+        # and "Gap" are the two answers that assert a defect, and a rationale
+        # silent about follow-up leaves that answer unexplained.
+        followup = str(answers.get("followup_assessment_yes")
+                       or answers.get("followup_assessment_no") or "").lower()
+        if followup in ("hurt", "gap") and not _FOLLOWUP_PATTERN.search(text):
+            f.add("ERROR", "F7", where,
+                  f'follow-up is assessed "{followup}" but the rationale never mentions the '
+                  "follow-up; an answer that marks something wrong has to be argued in the prose")
 
     explanation = payload.get("preference_explanation") or ""
     if explanation.strip():
@@ -422,14 +468,20 @@ def check_rating_evidence(payload, f):
         a = payload.get("response_a") or {}
         b = payload.get("response_b") or {}
         for axis in AXES:
-            if axis in named:
-                continue
             ra, rb = _int(a.get(RATING_FIELD[axis])), _int(b.get(RATING_FIELD[axis]))
-            if ra is not None and rb is not None and ra != rb:
-                f.add("ERROR", "F7", "preference_explanation",
-                      f"the two responses are scored {ra} and {rb} on {AXIS_LABEL[axis]}, but the "
-                      "explanation never names that axis; a difference that separates them belongs "
-                      "in the comparison")
+            decisive = ra is not None and rb is not None and ra != rb
+            if axis not in named:
+                if decisive:
+                    f.add("ERROR", "F7", "preference_explanation",
+                          f"the two responses are scored {ra} and {rb} on {AXIS_LABEL[axis]}, but "
+                          "the explanation never names that axis; a difference that separates them "
+                          "belongs in the comparison")
+                continue
+            if not _attribute_forward(explanation, axis):
+                f.add("ERROR" if decisive else "WARN", "F8", "preference_explanation",
+                      f"{AXIS_LABEL[axis]} is mentioned but never opens a sentence; the guidance "
+                      "asks for attribute-forward prose, so lead with the attribute and let the "
+                      "example from the response follow it")
 
 
 # ============================================================================
@@ -447,6 +499,20 @@ RATING_FIELD = {
     "clarity": "clarity_rating",
     "tone": "tone_rating",
 }
+# How low a rating has to go before the form demands a failure-mode flag. The
+# reviewer on 70afd761 set it: "for any attributes that score less than a 4, you
+# need to add a failure flag. The only exception is clarity and tone which only
+# require a failure flag when 3 or below." Taken literally those two clauses say
+# the same thing, so the threshold comes from the worked example in the same
+# note instead: Focus at 4 was sent back on both responses, Tone at 4 on both
+# was not, and Clarity sat at 4 and 5 unremarked. That puts the general line at
+# 4 or below and the Clarity/Tone line at 3 or below.
+#
+# A flag ticked above the threshold is still allowed. C1 only objects at 5,
+# where the flag contradicts the score.
+FLAG_THRESHOLD = {"clarity": 3, "tone": 3}
+FLAG_THRESHOLD_DEFAULT = 4
+
 FLAG_FIELDS = {
     "constraint_following": ["constraint_following_checkboxes"],
     "intent_understanding": ["intent_understanding_checkboxes"],
@@ -481,19 +547,31 @@ def check_coherence(payload, f):
                 f.add("WARN", "C1", f"{label} {axis}",
                       f"rated 5 but {len(flags)} failure-mode flag(s) ticked — a 5 says there is "
                       "nothing to flag, so one of the two is wrong")
-            # Any rating under 5 on an axis that HAS flags needs one ticked.
-            # Reviewers have sent this back twice, both times over a 4: "there
-            # was a missing flag for Coverage for Response A despite it being a
-            # 4", and "you rated Focus as 4, so you need to select a
-            # failure-mode flag that explains what the issue was". The score
-            # says something is wrong; the flag says what, and the reviewer
-            # reads the pair together.
-            if rating is not None and rating <= 4 and FLAG_FIELDS[axis] and not flags and \
-                    str(answers.get(f"{axis}_flag_missing", "")).lower() in ("no", "false", ""):
-                f.add("ERROR", "C2", f"{label} {axis}",
-                      f"rated {rating} with no failure-mode flag ticked and no note — a score "
-                      "below 5 has to name what the issue was, either with a flag or in the "
-                      "free-text note")
+            # A rating at or below the axis's threshold needs a flag ticked.
+            # Reviewers have sent this back four times, every time over a 4:
+            # Coverage on 4876e759, Focus on 37a900a7, Intent Understanding and
+            # Coverage on 989cf268, Focus on both responses of 70afd761. The
+            # score says something is wrong; the flag says what, and the
+            # reviewer reads the pair together.
+            #
+            # The escape hatch is answering Yes to "other failure-modes" and
+            # describing it, so the empty note is checked too. Yes with nothing
+            # written reaches the reviewer as the same bare 4, and it is worse
+            # than a plain miss because the form was told an explanation exists.
+            threshold = FLAG_THRESHOLD.get(axis, FLAG_THRESHOLD_DEFAULT)
+            if rating is not None and rating <= threshold and FLAG_FIELDS[axis] and not flags:
+                declared = str(answers.get(f"{axis}_flag_missing", "")).lower() in ("yes", "true")
+                note = str(answers.get(f"{axis}_other_text", "") or "").strip()
+                if not declared:
+                    f.add("ERROR", "C2", f"{label} {axis}",
+                          f"rated {rating} with no failure-mode flag ticked and no note — a score "
+                          "below 5 has to name what the issue was, either with a flag or in the "
+                          "free-text note")
+                elif not note:
+                    f.add("ERROR", "C2", f"{label} {axis}",
+                          f'rated {rating} with no flag ticked and "other failure-modes" answered '
+                          "Yes, but the description is empty — that Yes is what carries the reason, "
+                          "so the box has to say what the issue was")
 
         status = str(answers.get("correctness_status", "")).lower()
         subflags = list(answers.get("correctness_checkboxes") or [])

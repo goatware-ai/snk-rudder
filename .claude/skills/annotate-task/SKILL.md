@@ -73,6 +73,22 @@ from reading the responses against `docs/rudder-guidelines.md`.
    - Follow-up asks two things: was including (or omitting) it the right call,
      and if included, did it help.
 
+   **A rating at or below the threshold needs a failure-mode flag.** The score
+   asserts a defect and the flag says which one; a reviewer reads them as a
+   pair, so a bare 4 looks careless. The thresholds are not uniform:
+
+   | Axis | Flag required at |
+   |---|---|
+   | Constraint Following, Intent Understanding, Correctness, Coverage, Focus | 4 or below |
+   | Clarity, Tone | 3 or below |
+
+   Where no listed flag fits, answer "Are there other failure-modes to flag?"
+   with Yes and describe it in the free-text box; a Yes with an empty box fails
+   the same way a missing flag does. Never round up to avoid the question. A
+   flag above the threshold is still fine, just not required. Four rejections
+   have turned on this (4876e759, 37a900a7, 989cf268, 70afd761), and
+   `check_answers.py` fails the export as **C2**.
+
 5. Fill in the sheet. Each question carries its form field id, so write the
    answers as a JSON map of id -> value and apply them in one pass rather than
    hand-editing ~40 blanks:
@@ -96,6 +112,29 @@ from reading the responses against `docs/rudder-guidelines.md`.
 
    Both avoid first person and must be evidence-based, citing specifics from
    the responses. The flags you checked are good evidence to cite.
+
+   **Write attribute-forward.** The project's Slack guidance, quoted back in a
+   rejection: "Please make sure that the attributes are explicitly mentioned in
+   the response explanations - these attributes should not be implied at all.
+   These should be supported by clear and specific examples from the
+   responses." So each axis is named outright, it opens the sentence, and the
+   evidence from the response follows it. Writing "the structure is easy to
+   follow" and leaving the reader to supply Clarity is the single most common
+   reason our work has come back.
+
+   - Fails: "The structure is easy to follow, though it repeats itself at the
+     end."
+   - Fails: "The response is well organised and reads cleanly on Clarity."
+     (named, but trailing)
+   - Passes: "Clarity is strong, since the numbered steps carry the reader
+     through the calculation in order, while Focus suffers from a closing
+     section that repeats the opening."
+
+   Name the strong axes too, and say what the overall rating turned on; the
+   preference explanation names the axes that decided it. `check_answers.py`
+   fails the export as **F7** when an axis is missing and warns as **F8** when
+   one is named but never fronted. The platform's own "Rating Evidence" check
+   tests the same thing.
 
    The trailing "Review" section is for reviewers, not annotators — skip it;
    the annotator's form ends at the preference explanation with Skip/Submit.
@@ -156,8 +195,10 @@ from reading the responses against `docs/rudder-guidelines.md`.
      no first person, no vague assertion, and the justification a strong
      preference or a tie owes.
    - **C** — the answers against each other: a preference that contradicts the
-     two overall ratings, a flag ticked under a rating of 5, a low rating with
-     no flag and no note, correctness sub-flags under a status of OK.
+     two overall ratings, a flag ticked under a rating of 5, a rating at or
+     below its flag threshold with no flag and no note, a rationale that never
+     names an axis its own ratings mark as imperfect or never fronts one,
+     correctness sub-flags under a status of OK.
 
    A WARN is a second read, not a blocker. Fix the sheet, never the JSON, and
    re-run; the JSON is derived. To fix and check a sheet on its own, before the

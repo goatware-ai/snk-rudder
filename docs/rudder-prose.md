@@ -72,7 +72,23 @@ From [rudder-form.md](rudder-form.md), which records what the live form asks for
 | **F4** | Text that does not end in a full stop. | WARN |
 | **F5** | A rating rationale under 40 words, which rarely addresses everything the box asks for. | WARN |
 | **F6** | A strong preference that never says why the gap is substantial, or a tie that never says why the responses are equivalent. The form requires both. | WARN |
-| **F7** | A rationale that never names an axis the ratings mark as imperfect, or a preference explanation that never names an axis the two responses are scored differently on. This is the platform's own **Rating Evidence** check, and the one our submissions keep failing. | ERROR |
+| **F7** | A rationale that never names an axis the ratings mark as imperfect, a rationale silent on a follow-up assessed Hurt or Gap, or a preference explanation that never names an axis the two responses are scored differently on. This is the platform's own **Rating Evidence** check, and the one our submissions keep failing. | ERROR |
+| **F8** | An axis that is named but never opens a sentence. ERROR where that axis carries a defect, WARN where it was clean. | WARN / ERROR |
+
+F8 is the second half of the same instruction, quoted from the project's Slack guidance in
+the 70afd761 rejection: the attributes "should not be implied at all" and "should be
+supported by clear and specific examples from the responses". Naming an axis in a trailing
+clause satisfies F7 and still reads as an afterthought, so F8 asks that the axis open a
+sentence at least once and the evidence follow it. Whether the example that follows is
+clear and specific stays a read; no pattern decides that.
+
+Note that F7 and C2 use different thresholds on purpose. C2 asks whether the *form* needs a
+flag, which for Clarity and Tone starts at 3. F7 asks whether the *prose* has something to
+explain, which any score under 5 creates, Clarity and Tone included.
+
+Follow-up is in F7 rather than C2 because the form gives it no flag checkboxes. Hurt and
+Gap are the two answers that assert a defect, so the rationale is the only place that
+defect can be argued.
 
 F7 exists because evidence and judgement are not the same answer. A rationale can quote
 the right line and still be rejected if the reader has to work out which score it supports,
@@ -92,7 +108,7 @@ would catch immediately.
 | Code | Fires on | Severity |
 |---|---|---|
 | **C1** | An axis rated 5 with a failure-mode flag ticked. A 5 says there is nothing to flag. | WARN |
-| **C2** | An axis rated 4 or below with no flag ticked and no note. A score under 5 asserts a defect; the flag says which one, and reviewers have sent work back twice over a bare 4. | ERROR |
+| **C2** | An axis at or below its flag threshold (4 for most, 3 for Clarity and Tone) with no flag ticked, and either no Yes to "other failure-modes" or a Yes whose description is empty. The score asserts a defect; the flag says which one, and reviewers have sent work back four times over a bare 4. | ERROR |
 | **C3** | Correctness flagged with no sub-flag (warn), or sub-flags ticked while the status is OK or not sure (error, since the form will not even show them). | WARN / ERROR |
 | **C4** | An overall of 5 while an axis sits at 3 or below, or an overall of 2 or 1 while every axis is 4 or better. Defensible, but the rationale has to carry it. | WARN |
 | **C5** | A preference that contradicts the two overall ratings. | ERROR |
