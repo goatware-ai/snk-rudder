@@ -395,11 +395,19 @@ def check_coherence(payload, f):
                 f.add("WARN", "C1", f"{label} {axis}",
                       f"rated 5 but {len(flags)} failure-mode flag(s) ticked — a 5 says there is "
                       "nothing to flag, so one of the two is wrong")
-            if rating is not None and rating <= 2 and not flags and \
+            # Any rating under 5 on an axis that HAS flags needs one ticked.
+            # Reviewers have sent this back twice, both times over a 4: "there
+            # was a missing flag for Coverage for Response A despite it being a
+            # 4", and "you rated Focus as 4, so you need to select a
+            # failure-mode flag that explains what the issue was". The score
+            # says something is wrong; the flag says what, and the reviewer
+            # reads the pair together.
+            if rating is not None and rating <= 4 and FLAG_FIELDS[axis] and not flags and \
                     str(answers.get(f"{axis}_flag_missing", "")).lower() in ("no", "false", ""):
-                f.add("WARN", "C2", f"{label} {axis}",
-                      f"rated {rating} with no flag ticked and no note — a low score leaves the "
-                      "reviewer without a reason unless a flag or the free text carries it")
+                f.add("ERROR", "C2", f"{label} {axis}",
+                      f"rated {rating} with no failure-mode flag ticked and no note — a score "
+                      "below 5 has to name what the issue was, either with a flag or in the "
+                      "free-text note")
 
         status = str(answers.get("correctness_status", "")).lower()
         subflags = list(answers.get("correctness_checkboxes") or [])
