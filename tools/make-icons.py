@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Regenerate the extension's icons.
 
-    python3 tools/rudder-helper/icons/make-icons.py
+    python3 tools/make-icons.py
 
 A rounded square holding two columns with a tick between them: the two responses
 this extension rates, and the preference it records. Drawn at 8x and downsampled
@@ -13,7 +13,10 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
+# This script lives in tools/, not in the extension folder, because Chrome
+# loads that folder whole and refuses one holding a __pycache__.
 HERE = Path(__file__).resolve().parent
+ICONS = HERE / "rudder-helper" / "icons"
 SIZES = (16, 32, 48, 128)
 BG = (43, 95, 158, 255)  # the popup's accent blue
 FG = (255, 255, 255, 255)
@@ -46,7 +49,7 @@ def draw(px: int) -> Image.Image:
 
 def main() -> int:
     for px in SIZES:
-        path = HERE / f"icon{px}.png"
+        path = ICONS / f"icon{px}.png"
         draw(px).save(path)
         print(f"wrote {path.name}")
     return 0

@@ -100,7 +100,10 @@ Relevant only if you are changing the extension. Captures live in `tools/`:
 the three form sections as `section-1.html`, `section-2.html` and
 `section-3.html`, the left panel holding the prompt and both responses as
 `prompt-response.html`, and the header's UID line as `task-header.html`.
-`tools/rudder-helper/test_selectors.py` asserts the following against them.
+`tools/test_selectors.py` asserts the following against them. That script lives
+in `tools/`, not in the extension folder: Chrome loads `tools/rudder-helper/`
+whole and refuses it if anything in there is named with a leading underscore,
+which a Python bytecode cache would be.
 
 - Each section is an accordion carrying `data-testid="section-<heading>"`, open
   or closed by a **bare** `data-open` / `data-closed` attribute with no value. A

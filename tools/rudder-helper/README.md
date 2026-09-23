@@ -159,12 +159,19 @@ Notes on values:
 ## Testing
 
 ```bash
-python3 tools/rudder-helper/test_selectors.py submissions/NN-uid8/payload_uid8.json
+python3 tools/test_selectors.py submissions/NN-uid8/payload_uid8.json
 ```
 
 With no payload it checks the extension's assumptions about the form. With one it also
 resolves every value the way the extension will: each rating against the options that
 exist, each flag against the labels that exist. A typo fails here, with no browser open.
+
+It also checks this folder itself. **Nothing but the extension's own files belongs
+here**: Chrome loads the folder whole and refuses any name beginning with an underscore,
+so a `__pycache__` left beside a script in here stops the extension loading with
+*"Filenames starting with _ are reserved for use by the system."* The test script and the
+icon generator live in `tools/` for that reason, and the test fails if either reappears
+here.
 
 To re-capture the form after a schema change, copy each section's outer
 `<div data-testid="section-...">` from the page inspector over the matching file in

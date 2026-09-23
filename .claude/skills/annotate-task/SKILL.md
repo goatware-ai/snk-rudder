@@ -166,14 +166,16 @@ from reading the responses against `docs/rudder-guidelines.md`.
    Then resolve every value against the captured form, which needs no browser:
 
    ```bash
-   python3 tools/rudder-helper/test_selectors.py \
+   python3 tools/test_selectors.py \
        submissions/<folder>/payload_<uid8>.json
    ```
 
-   Loading it is `tools/rudder-helper/README.md`: Load JSON, **Scan page** and
-   read the A/B line, **Fill all**, **Verify**. The extension refuses to fill
-   when the fingerprints say the payload was written the other way round, and
-   the popup's **Swap A/B** button rewrites it for the other placement.
+   Loading it is `tools/rudder-helper/README.md`: Load JSON, **Scan page**,
+   **A/B Adjust**, **Fill all**, **Verify**. A fill is refused when the page is
+   a different task than the payload's `task_uid`, or when the fingerprints say
+   the payload was written the other way round. **A/B Adjust** reads the two
+   response panes and turns the payload the right way round for that render, or
+   reports that it was already correct and changes nothing.
 
 7. Report the answers in chat in the order the form asks for them, so they can
    be transcribed straight down the page: Response A's eight axes with their

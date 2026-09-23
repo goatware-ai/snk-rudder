@@ -1,0 +1,72 @@
+{
+  "task_uid": "989cf268-546d-4f35-94da-3efb87e08a03",
+  "generated": "2026-09-22",
+  "fingerprints": {
+    "a": "**Cover story / day-one logistics (late 1991)**",
+    "b": "If I land in, say, 1990 with nothing but a suitcase, a Social Security number I have to forge, and a head full…"
+  },
+  "response_a": {
+    "clarity_flag_missing": "no",
+    "clarity_prose_level_checkboxes": [
+      "Contains awkward or confusing phrasing"
+    ],
+    "clarity_rating": "4",
+    "clarity_structural_checkboxes": [],
+    "constraint_following_checkboxes": [],
+    "constraint_following_flag_missing": "no",
+    "constraint_following": "not_applicable",
+    "correctness_checkboxes": [],
+    "correctness_flag_missing": "no",
+    "correctness_status": "ok",
+    "coverage_checkboxes": [],
+    "coverage_flag_missing": "no",
+    "coverage_rating": "5",
+    "focus_checkboxes": [],
+    "focus_flag_missing": "no",
+    "focus_rating": "5",
+    "followup_assessment_no": "correct_omission",
+    "followup_included": "no",
+    "intent_understanding_checkboxes": [],
+    "intent_understanding_flag_missing": "no",
+    "intent_understanding_rating": "5",
+    "overall_rating": "5",
+    "overall_rationale": "The response honours both halves of the request. It stays inside the normal-person frame from the first line, arriving with period cash and a forged resume, taking a junior developer-relations post, and stating plainly that becoming chief executive is not the goal. Each of its five tactics is then scoped to what a junior hire could actually move: one unignorable demo, internal advocacy that gives engineering managers cover to reassign staff, an unwanted OEM outreach assignment, and a zero-budget developer survey aimed at the accountants rather than at the president directly. The historical detail is specific and consistent, naming West Chester, the Gould and Ali arrangement, the CDTV cash burn and the April 1994 liquidation. A closing table separates the realistic win conditions from the fantasy of rescue, which answers the tension in the request without dodging it. Small production slips cost it. A bold marker opens mid-word before the developer kit price, and the abbreviation for that kit is transposed. An article also disagrees with the operating system name that follows it.",
+    "tone_checkboxes": [],
+    "tone_flag_missing": "no",
+    "tone_rating": "5"
+  },
+  "response_b": {
+    "clarity_flag_missing": "no",
+    "clarity_prose_level_checkboxes": [
+      "Contains inconsistencies"
+    ],
+    "clarity_rating": "4",
+    "clarity_structural_checkboxes": [],
+    "constraint_following_checkboxes": [],
+    "constraint_following_flag_missing": "no",
+    "constraint_following": "not_applicable",
+    "correctness_checkboxes": [],
+    "correctness_flag_missing": "no",
+    "correctness_status": "ok",
+    "coverage_checkboxes": [],
+    "coverage_flag_missing": "no",
+    "coverage_rating": "4",
+    "focus_checkboxes": [
+      "Contains unnecessary repetition or redundant phrasing"
+    ],
+    "focus_flag_missing": "no",
+    "focus_rating": "4",
+    "followup_assessment_no": "correct_omission",
+    "followup_included": "no",
+    "intent_understanding_checkboxes": [],
+    "intent_understanding_flag_missing": "no",
+    "intent_understanding_rating": "4",
+    "overall_rating": "4",
+    "overall_rationale": "The response is honest about why the company failed, naming the concentration of control, the starved research budget and the console released into a market already taken by the personal computer. It is also clear that a lone employee could not reverse any of that. The plan it offers instead is coherent and well sequenced across four phases, ending with the purchase of the division during the 1994 liquidation and a narrower business built on video and music work, where the machine genuinely led. The prose is clean, and the phases are easy to follow. The cost is the framing. The request asked what a normal person would do, and the answer is to stop being one. The plan turns on accumulating investment capital from advance knowledge of the technology market, and the version for someone who stays poor is a single closing paragraph about archiving disks and joining user groups. The capital itself appears without explanation, because the arrival is described as a suitcase and nothing more. The last paragraph also restates a conclusion the third paragraph already reached.",
+    "tone_checkboxes": [],
+    "tone_flag_missing": "no",
+    "tone_rating": "5"
+  },
+  "preference": "A > B",
+  "preference_explanation": "@Response_A is preferred because it answers the question that was asked. The request set two terms, arriving in the 1990s as a normal person and trying to save Commodore, and @Response_A holds both. It takes a junior post, scopes every tactic to what a junior hire could move, and keeps the rescue attempt going before conceding in a closing table that the realistic outcomes are a warmer asset sale or a licensing deal rather than survival. @Response_B sets the first term aside. Its plan is to avoid the company, invest on advance knowledge of the technology market, and return in 1994 as the buyer, which makes the protagonist the least ordinary person available. The fallback for someone who stays poor runs to one paragraph. @Response_B is the cleaner piece of writing, and its account of why the company failed is sharper. The gap is therefore moderate rather than large. Both also carry small internal faults, a mid-word bold marker and a transposed abbreviation in @Response_A, and twenty thousand dollars of capital arriving from nowhere in @Response_B."
+}

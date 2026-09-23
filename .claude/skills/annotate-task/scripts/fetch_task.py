@@ -136,7 +136,10 @@ def build_answer_sheet(uid, uid8, data, sd, today) -> tuple:
     x = sd.get("response_text_x", "")
     y = sd.get("response_text_y", "")
     project = data.get("project", "?")
-    project_id = (data.get("project_id") or {}).get("id", "?")
+    # project_id arrives either as a plain id or wrapped in an object, and which
+    # one varies by payload, so take both shapes rather than assuming either.
+    raw_id = data.get("project_id")
+    project_id = raw_id.get("id", "?") if isinstance(raw_id, dict) else (raw_id or "?")
 
     out = [
         f"# Answer sheet — task {uid}",

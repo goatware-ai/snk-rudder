@@ -10,4 +10,4 @@ venv/
 
 # Editors
 .idea/
-*.swp__pycache__/
+*.swp

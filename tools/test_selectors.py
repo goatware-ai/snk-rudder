@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check the extension's assumptions against the captured form, and a payload against both.
 
-    python3 tools/rudder-helper/test_selectors.py [payload.json ...]
+    python3 tools/test_selectors.py [payload.json ...]
 
 page.js encodes a contract with the live page: every question sits in a
 [data-testid="field-<id>"] container; a rating is a button[role=radio] carrying
@@ -28,14 +28,19 @@ UUID_RE = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 PANE_CAPTURE = None  # set in load()
 HEADER_CAPTURE = None
 
+# The captures sit beside this script in tools/. Nothing here lives inside
+# tools/rudder-helper/: Chrome loads that folder whole, so a stray .py file
+# ships with the extension and a __pycache__ beside it stops it loading
+# outright, because Chrome reserves names beginning with an underscore.
 HERE = Path(__file__).resolve().parent
+EXTENSION = HERE / "rudder-helper"
 CAPTURES = {
-    "a": HERE.parent / "section-1.html",
-    "b": HERE.parent / "section-2.html",
-    None: HERE.parent / "section-3.html",
+    "a": HERE / "section-1.html",
+    "b": HERE / "section-2.html",
+    None: HERE / "section-3.html",
 }
-PANES_HTML = HERE.parent / "prompt-response.html"
-HEADER_HTML = HERE.parent / "task-header.html"
+PANES_HTML = HERE / "prompt-response.html"
+HEADER_HTML = HERE / "task-header.html"
 
 # Mirrors PER_RESPONSE / PREFERENCE in page.js. Third item is the gate that has
 # to hold a value for the question to render at all.
@@ -387,6 +392,43 @@ def load():
     return parsed
 
 
+# Chrome loads the extension folder whole and refuses any file or directory
+# whose name begins with an underscore, so a Python bytecode cache left beside a
+# script in there stops the extension loading with "Filenames starting with _
+# are reserved". Nothing but the extension's own files belongs in that folder.
+EXTENSION_FILES = {
+    "manifest.json", "page.js", "popup.html", "popup.js", "README.md",
+    "icons/icon16.png", "icons/icon32.png", "icons/icon48.png", "icons/icon128.png",
+}
+
+
+def check_extension_folder(c):
+    if not EXTENSION.is_dir():
+        c.failures.append(f"missing extension folder: {EXTENSION}")
+        return
+    found = set()
+    for path in sorted(EXTENSION.rglob("*")):
+        rel = path.relative_to(EXTENSION).as_posix()
+        for part in path.relative_to(EXTENSION).parts:
+            c.ok(
+                not part.startswith("_"),
+                f"{rel}: Chrome reserves names beginning with an underscore and will "
+                "refuse to load the extension. Delete it and keep tooling in tools/.",
+            )
+        if path.is_file():
+            found.add(rel)
+            c.ok(
+                path.suffix != ".py",
+                f"{rel}: a Python file ships with the extension from here. "
+                "Move it to tools/.",
+            )
+    unexpected = found - EXTENSION_FILES
+    c.ok(not unexpected,
+         f"unexpected file(s) in the extension folder: {', '.join(sorted(unexpected))}")
+    missing = EXTENSION_FILES - found
+    c.ok(not missing, f"missing extension file(s): {', '.join(sorted(missing))}")
+
+
 def check_form(parsed, c):
     expected_sections = {
         "a": "Rating Assessment - Response A",
@@ -526,6 +568,7 @@ def check_payload(parsed, payload, name, c):
 def main() -> int:
     parsed = load()
     c = Check()
+    check_extension_folder(c)
     check_form(parsed, c)
     panes = check_panes(c)
     check_uid(c)
