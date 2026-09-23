@@ -72,6 +72,13 @@ From [rudder-form.md](rudder-form.md), which records what the live form asks for
 | **F4** | Text that does not end in a full stop. | WARN |
 | **F5** | A rating rationale under 40 words, which rarely addresses everything the box asks for. | WARN |
 | **F6** | A strong preference that never says why the gap is substantial, or a tie that never says why the responses are equivalent. The form requires both. | WARN |
+| **F7** | A rationale that never names an axis the ratings mark as imperfect, or a preference explanation that never names an axis the two responses are scored differently on. This is the platform's own **Rating Evidence** check, and the one our submissions keep failing. | ERROR |
+
+F7 exists because evidence and judgement are not the same answer. A rationale can quote
+the right line and still be rejected if the reader has to work out which score it supports,
+which is what [reviewer-feedback.md](reviewer-feedback.md) records for 37a900a7. The check
+matches the axis names loosely, so it catches a rationale that never reaches for the
+vocabulary rather than grading how well an axis was argued.
 
 Quoted spans are exempt from F1 and the P rules. Quoting a response's own words is the
 evidence the form asks for, so a rule about the annotator's voice must not fire on the
@@ -85,7 +92,7 @@ would catch immediately.
 | Code | Fires on | Severity |
 |---|---|---|
 | **C1** | An axis rated 5 with a failure-mode flag ticked. A 5 says there is nothing to flag. | WARN |
-| **C2** | An axis rated 2 or 1 with no flag ticked and no note. A low score with no reason leaves the reviewer guessing. | WARN |
+| **C2** | An axis rated 4 or below with no flag ticked and no note. A score under 5 asserts a defect; the flag says which one, and reviewers have sent work back twice over a bare 4. | ERROR |
 | **C3** | Correctness flagged with no sub-flag (warn), or sub-flags ticked while the status is OK or not sure (error, since the form will not even show them). | WARN / ERROR |
 | **C4** | An overall of 5 while an axis sits at 3 or below, or an overall of 2 or 1 while every axis is 4 or better. Defensible, but the rationale has to carry it. | WARN |
 | **C5** | A preference that contradicts the two overall ratings. | ERROR |

@@ -346,6 +346,92 @@ def check_preference_strength(preference, explanation, f):
               "genuinely similar; the form requires that for a tie")
 
 
+# The platform's "Rating Evidence" check, and the complaint behind it, restated
+# by the reviewer who rejected 37a900a7: "The attributes need to be explicitly
+# mentioned in the response explanations - these attributes should not be
+# implied at all." That rejection quoted "the structure is easy to follow"
+# without Clarity and "the weakness is repetition" without Focus. Both sentences
+# carry the evidence; neither names the axis it is evidence for, so the reviewer
+# cannot read the prose as justification for any particular score.
+#
+# The patterns are deliberately loose. Matching "focus" anywhere in the text
+# passes a rationale that only ever uses the word as a verb, which is a miss in
+# the safe direction: the check is here to catch a rationale that never reaches
+# for the vocabulary at all, not to grade how well an axis was argued.
+AXIS_LABEL = {
+    "constraint_following": "Constraint Following",
+    "intent_understanding": "Intent Understanding",
+    "correctness": "Correctness",
+    "coverage": "Coverage",
+    "focus": "Focus",
+    "clarity": "Clarity",
+    "tone": "Tone",
+}
+AXIS_PATTERN = {
+    "constraint_following": re.compile(r"\bconstraint", re.I),
+    "intent_understanding": re.compile(r"\bintent\b", re.I),
+    "correctness": re.compile(r"\bcorrectness\b", re.I),
+    "coverage": re.compile(r"\bcoverage\b", re.I),
+    "focus": re.compile(r"\bfocus", re.I),
+    "clarity": re.compile(r"\bclarity\b", re.I),
+    "tone": re.compile(r"\btone\b", re.I),
+}
+
+
+def _axes_named(text):
+    return {axis for axis, pat in AXIS_PATTERN.items() if pat.search(text)}
+
+
+def check_rating_evidence(payload, f):
+    """F7: an axis the ratings mark as imperfect has to be named in the prose."""
+    for side in ("a", "b"):
+        answers = payload.get(f"response_{side}") or {}
+        text = answers.get("overall_rationale") or ""
+        if not text.strip():
+            continue
+        where = f"overall_rationale_response_{side}"
+        named = _axes_named(text)
+        if not named:
+            f.add("ERROR", "F7", where,
+                  "names none of the rating axes; the rationale is read as justification for the "
+                  "scores, so it has to say which axis each piece of evidence belongs to")
+            continue
+        for axis in AXES:
+            if axis in named:
+                continue
+            flags = []
+            for key in FLAG_FIELDS[axis]:
+                flags += list(answers.get(key) or [])
+            rating = _int(answers.get(RATING_FIELD[axis]))
+            imperfect = (rating is not None and rating <= 4) or bool(flags) or \
+                str(answers.get("correctness_status", "")).lower() == "flagged" and axis == "correctness"
+            if imperfect:
+                scored = rating if rating is not None else "flagged"
+                f.add("ERROR", "F7", where,
+                      f"{AXIS_LABEL[axis]} is scored {scored} but the rationale never names it; "
+                      "an axis that cost the response something has to be named, not implied")
+
+    explanation = payload.get("preference_explanation") or ""
+    if explanation.strip():
+        named = _axes_named(explanation)
+        if not named:
+            f.add("ERROR", "F7", "preference_explanation",
+                  "names none of the rating axes; the explanation has to say which axes decided "
+                  "the preference")
+            return
+        a = payload.get("response_a") or {}
+        b = payload.get("response_b") or {}
+        for axis in AXES:
+            if axis in named:
+                continue
+            ra, rb = _int(a.get(RATING_FIELD[axis])), _int(b.get(RATING_FIELD[axis]))
+            if ra is not None and rb is not None and ra != rb:
+                f.add("ERROR", "F7", "preference_explanation",
+                      f"the two responses are scored {ra} and {rb} on {AXIS_LABEL[axis]}, but the "
+                      "explanation never names that axis; a difference that separates them belongs "
+                      "in the comparison")
+
+
 # ============================================================================
 # C: the answers read against each other
 # ============================================================================
@@ -637,6 +723,7 @@ def check_payload(payload, name):
         check_prose(text, field_id, f)
         check_style(text, field_id, kind, f)
     check_preference_strength(payload.get("preference"), payload.get("preference_explanation"), f)
+    check_rating_evidence(payload, f)
     check_coherence(payload, f)
     return f
 

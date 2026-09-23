@@ -1,6 +1,6 @@
 # Feedback — task 37a900a7-4d5f-4038-b8d3-055f079a4016
 
-- Collected: 2026-09-23 02:59 UTC
+- Collected: 2026-09-23 03:22 UTC
 - Answer sheet: `02-37a900a7/answer_37a900a7.md`
 - Revision requested: 2026-09-22T20:30:42.001753Z
 
@@ -20,9 +20,9 @@ Because we are near the end of the batch, I cannot send the submission back to y
 
 ## Automated checks
 
-- PASS — Third person rationale
-- PASS — Reference Conventions
-- **FAIL** — Rating Evidence
 - PASS — Grammar
+- **FAIL** — Rating Evidence
+- PASS — Reference Conventions
+- PASS — Third person rationale
 - PASS — Uniqueness
 

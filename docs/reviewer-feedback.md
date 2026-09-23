@@ -51,6 +51,28 @@ Name every axis that carried weight, including the ones that were strong, and
 say what the score turned on. The preference explanation needs the same
 treatment: the axes that decided it, named.
 
+`check_answers.py` enforces this as error **F7**: a rationale that never names
+an axis its own ratings mark as imperfect, or a preference explanation silent on
+an axis the two responses are scored differently on. Run against the payload as
+it was submitted, F7 fires on all three of 37a900a7's prose fields.
+
+## The reviewer's "Response A" is the form's, not the answer sheet's
+
+> For example, in your Response A rationale, you write, "the structure is easy
+> to follow" ... Also, for Response B, you rated Focus as 4.
+> — 37a900a7, rejected
+
+Both sentences point at the opposite side of the local sheet. That quoted phrase
+is in this sheet's Response B rationale, and the Focus 4 with no flag is this
+sheet's Response A. The form randomises which response fills its Response A
+column, the sheet is keyed to the fingerprints instead, and this submission was
+transcribed across the swap.
+
+So feedback arrives in the form's ordering. Before editing anything, check a
+quoted phrase or a named score against the sheet and work out which way the
+mapping ran, because applying a note to the wrong side fixes nothing and breaks
+what was right.
+
 ## The three free-text answers must not read alike
 
 The **Uniqueness** check fails on 4876e759 across exactly the three prose
@@ -71,4 +93,5 @@ differences.
 The payload reports these per submission, and `fetch_feedback.py` prints which
 failed: Third person rationale, Reference Conventions, **Rating Evidence**,
 Grammar, Uniqueness. Rating Evidence is the one our work has failed, and the
-section above is what it wants.
+section above is what it wants. F7 is the local approximation of it, so a clean
+`check_answers.py` run now clears the same bar before the payload is typed in.

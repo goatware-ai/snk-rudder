@@ -179,8 +179,8 @@ Choose one: `5` / `4` / `3` / `2` / `1`
 `focus_checkboxes_response_a`
 
 Check all that apply (leave all unchecked if none):
-- [ ] Contains irrelevant information
-- [ ] Contains unnecessary repetition or redundant phrasing
+- [x] Contains irrelevant information
+- [x] Contains unnecessary repetition or redundant phrasing
 
 #### Are there other failure-modes to flag?
 `focus_flag_missing_response_a`
@@ -222,7 +222,7 @@ Check all that apply (leave all unchecked if none):
 > Structural:
 
 Check all that apply (leave all unchecked if none):
-- [ ] Excessive or unnecessary formatting
+- [x] Excessive or unnecessary formatting
 - [ ] Insufficient formatting
 - [ ] Disorganized or illogical structure
 
@@ -261,7 +261,7 @@ Check all that apply (leave all unchecked if none):
 - [ ] Excessive positivity, flattery, or hype
 - [ ] Mismatched tone (e.g., overly formal or casual, serious reply to a joking prompt)
 - [ ] Mismatched to audience expertise (jargon-heavy for a beginner, oversimplified for an expert)
-- [ ] Inconsistent voice or style across the response
+- [x] Inconsistent voice or style across the response
 
 #### Are there other failure-modes to flag?
 `tone_flag_missing_response_a`
@@ -329,7 +329,7 @@ Choose one: `5` / `4` / `3` / `2` / `1`
 
 **ANSWER (text):**
 
-> The response answers the question directly by naming five separate mechanisms behind the asymmetry, among them roles that form silently and the point that over-functioning invites under-functioning, so the user is handed a cause rather than only a label for the feeling. It also tests the account it was given. The confirmation bias section asks the user to track several exchanges and to notice whether they themselves ever reply with nothing more than brief acknowledgement, and the closing questions offer modality mismatch as a real alternative to inequity. That restraint matters when only one side of the friendship has been described. The practical steps are concrete and include wording the user could say as it stands. Against that, the opening claim that the pattern has a name in communication research uses turn-taking loosely, and the pull-back experiment in Step 1 overlaps the judgement questions offered later. The closing section also escalates to talk of consumption and a red flag, which goes past anything the user reported.
+> Intent Understanding is the strongest axis here. The prompt asks why an asymmetry that both sides treat as polite still feels unequal, and the response answers that question with named mechanisms, among them roles that form silently and the observation that over-functioning invites under-functioning. Coverage is complete on the same evidence, because the cause, the invisibility, and the fairness question each get a section of their own. Correctness holds, with one loose usage: the opening says the pattern has a name in communication research and then offers turn-taking, a real term for something narrower than the behaviour described, though no later claim rests on it. The response also guards its own accuracy by asking the user to track several exchanges and to notice whether they themselves ever reply with nothing more than brief acknowledgement. Follow-up helped, since the closing questions about other currencies and about whether the pattern appears with everyone give the user a next step that could overturn the conclusion. Focus costs the most. The pull-back experiment in Step 1 repeats the judgement question raised two sections later, and the closing passage about consumption and a red flag delivers a verdict on the friendship that nothing in the prompt reported. Clarity is held to a 4 by formatting rather than by sentences, because bold labels, italics, headings, nested steps, and block quotes all compete for emphasis at once. Tone drops into a harder register in that final section than the diagnostic voice the rest of the response keeps. The overall rating is 4: the axes this prompt turns on, Intent Understanding and Coverage, are met in full, and the deductions sit on Focus, Clarity, and Tone.
 
 ---
 
@@ -497,7 +497,7 @@ Check all that apply (leave all unchecked if none):
 `clarity_structural_checkboxes_response_b`
 
 Check all that apply (leave all unchecked if none):
-- [ ] Excessive or unnecessary formatting
+- [x] Excessive or unnecessary formatting
 - [ ] Insufficient formatting
 - [ ] Disorganized or illogical structure
 
@@ -526,7 +526,7 @@ _(same scale as Tone above)_
 
 Check all that apply (leave all unchecked if none):
 - [ ] Overly stiff or robotic
-- [ ] Preachy, moralizing, or condescending
+- [x] Preachy, moralizing, or condescending
 - [ ] Excessive positivity, flattery, or hype
 - [ ] Mismatched tone (e.g., overly formal or casual, serious reply to a joking prompt)
 - [ ] Mismatched to audience expertise (jargon-heavy for a beginner, oversimplified for an expert)
@@ -581,7 +581,7 @@ _(same scale as Overall rating above)_
 
 **ANSWER (text):**
 
-> The response builds one coherent account of the asymmetry and opens with the sharpest statement of it, that one side is measuring effort while the other is measuring presence. The good listener trap and the split between processing mode and exploring mode explain how the pattern trains itself with nobody intending it, which answers the part of the question about why the difference is not obvious. It stays careful with the absent friend, repeating that she may simply be comfortable rather than doing anything wrong, and the suggested wording could be used as it stands. Coverage is complete, and the structure is easy to follow. The weakness is repetition. The fourth section restates the premise the user already supplied and re-lists the giving and receiving contrast drawn in the first, and the closing summary says again what the body had established. The answer therefore runs longer than the question needed, without the extra length reaching anything new.
+> Coverage is complete. Every part of the question is worked through, including whether the imbalance is unfair, which the response settles by separating energy expenditure from word count. Intent Understanding is equally sound, because the good listener trap and the split between processing mode and exploring mode explain how the pattern trains itself with nobody intending it, which is what the prompt means by saying the difference is not obvious. Correctness raises nothing, and the account stays careful about a friend who is not present to answer, repeating that she may simply be comfortable rather than doing anything wrong. Follow-up helped, because the low-stakes experiment lets the user test the diagnosis before acting on it, and the suggested wording could be used as it stands. Focus is the weak axis and sits at 3. The fourth section restates the premise the user already supplied, re-lists the giving and receiving contrast drawn in the first, and the bottom line then says again what the body had established, so the response runs well past the length the question needed. Clarity stays at 4 because the ordering of sections is sound, while bold emphasis inside nearly every sentence adds friction the headings had already removed. Tone earns the same 4 for a close that moves from explanation into instruction, telling the user what they deserve and what seeing the labour clearly should lead to. The overall rating is 4. Intent Understanding, Coverage, and Correctness are all met. Focus, together with the reading time it costs, is what keeps the response short of a 5.
 
 ---
 
@@ -608,7 +608,7 @@ Choose one: `A >> B` / `A > B` / `A = B` / `A < B` / `A << B`
 
 **ANSWER (text):**
 
-> @Response_A is preferred because it tests the account it was given instead of only explaining it. Its confirmation bias section asks the user to track several exchanges and to notice whether they themselves ever reply with nothing more than brief acknowledgement. Its closing questions then offer modality mismatch as a real alternative to inequity, which matters when only one side of a friendship has been described. @Response_B states in its second sentence that the unfairness is real and later that the exchange is unequal, and although it does supply a pattern test, it has committed to the conclusion before that test is run. The two are close on Coverage, since both explain the mechanism and both give usable wording for raising it. Focus separated them. @Response_B restates the user's own premise in its fourth section, re-lists the giving and receiving contrast it had already drawn, and closes on a summary that adds nothing to the body. @Response_A carries only a mild overlap between its pull-back experiment and its later judgement questions. The gap is moderate rather than large, because @Response_B is the more coherent single account and is gentler toward the absent friend, and because @Response_A leans on research vocabulary that it uses loosely.
+> Focus decided this. @Response_B repeats the user's own premise in its fourth section, re-lists the giving and receiving contrast it had already drawn, and closes on a summary that adds nothing to the body, which puts it at 3 on that axis against 4 for @Response_A, whose only overlap runs between its pull-back experiment and its later judgement questions. Intent Understanding separates them a second time. @Response_A treats the inequity as a hypothesis, asking the user to count several exchanges and to weigh modality mismatch before concluding, while @Response_B calls the unfairness real in its second sentence and supplies its test afterwards, which is the weaker reading of a prompt describing one side of a friendship. Coverage is level, because both name the mechanism, both explain why politeness hides it, and both supply wording the user could say. Clarity and Tone are level at 4 apiece, @Response_A for its competing emphasis and its change of register at the end, @Response_B for its bolding and its instructing close. The gap is somewhat rather than much, because @Response_B gives the more coherent single account and is gentler toward the absent friend, and because @Response_A leans on communication research for a term it uses loosely.
 
 ---
 
